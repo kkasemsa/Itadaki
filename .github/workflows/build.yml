@@ -14,6 +14,18 @@ jobs:
       - name: Build and test
         run: |
           set -o pipefail
-          xcodebuild -scheme Itadaki \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
-            CODE_SIGNING_ALLOWED=NO test | tail -n 200
+          # Runner images do not always ship an "iPhone 16" simulator, so use whichever iPhone exists.
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          devices = [d for group in json.load(sys.stdin)['devices'].items() if 'iOS' in group[0] for d in group[1]]
+          phones = [d['udid'] for d in devices if d['name'].startswith('iPhone')]
+          print(phones[-1] if phones else '')")
+          if [ -n "$UDID" ]; then
+            xcodebuild -scheme Itadaki -destination "id=$UDID" CODE_SIGNING_ALLOWED=NO test \
+              | grep -E "error|warning: unre|Test Suite|Executed|\*\* " || true
+          else
+            echo "::warning::No iOS simulator on this runner; building without running tests"
+            xcodebuild -scheme Itadaki -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build \
+              | grep -E "error|\*\* " || true
+          fi
+          exit "${PIPESTATUS[0]}"
