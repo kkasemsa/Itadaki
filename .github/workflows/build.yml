@@ -1,0 +1,19 @@
+name: Build and test
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build and test
+        run: |
+          set -o pipefail
+          xcodebuild -scheme Itadaki \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            CODE_SIGNING_ALLOWED=NO test | tail -n 200

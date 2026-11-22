@@ -1,0 +1,55 @@
+name: Itadaki
+options:
+  bundleIdPrefix: net.kktp
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Itadaki:
+    type: application
+    platform: iOS
+    sources: [Itadaki]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.kktp.itadaki
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: Itadaki/Info.plist
+      properties:
+        CFBundleDisplayName: Itadaki
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        NSCameraUsageDescription: ใช้กล้องเพื่อถ่ายรูปเมนูอาหารสำหรับแปล
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    scheme:
+      testTargets:
+        - ItadakiTests
+  ItadakiTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [ItadakiTests]
+    dependencies:
+      - target: Itadaki
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: net.kktp.itadaki.tests

@@ -1,0 +1,8 @@
+*.xcodeproj
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+.DS_Store
+Config/Local.xcconfig
+Itadaki/Info.plist
