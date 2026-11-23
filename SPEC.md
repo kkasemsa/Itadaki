@@ -69,6 +69,8 @@ Models/         Menu, MenuPage, Dish (SwiftData)
 ## UI
 - **Dish list:** cards grouped under the section headings printed on the menu (Thai + Japanese), in menu order, with a chip bar to jump between headings. Dishes appear as each strip finishes.
 - **Order:** each card has a quantity control; a bottom bar opens the order summary — picked dishes in very large Japanese with quantities and the total in ¥ and ≈ ฿ — to show staff.
+- **Several pages:** pick up to 8 photos at once, or photograph pages one after another into a tray before reading. Results are shown per page, with a thumbnail strip to switch pages; the order spans all pages.
+- **Zoom:** in the detail sheet, tapping the dish photo or the menu page opens it full screen with pinch-to-zoom; the page opens zoomed in on the dish's box.
 - **Unreadable page:** short explanation, photo tips and a retake button.
 - **Dish row:** cropped photo (if any) on the left; Thai name (large), Japanese name (large enough to point at for staff), reading (small), price ¥ (and ≈ ฿ if rate set, entered as baht per 100 yen), tag chips. The photo column is hidden when the page has no dish photos.
 - **Tap a dish:** detail sheet with the Japanese name very large (to show staff), larger photo and description. On the original page, highlight its `text_bbox`.

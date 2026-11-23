@@ -15,33 +15,52 @@ struct MenuResult {
     let notes: String
 }
 
+/// One photographed menu page and how far its reading has got.
+struct PageState: Identifiable {
+    enum Status: Equatable {
+        case reading
+        case done
+        case failed(String)
+    }
+
+    let id: Int
+    /// The page upright and at working size.
+    var image: UIImage
+    /// Dishes read so far; fills in strip by strip while `status` is `.reading`.
+    var result: MenuResult?
+    var status: Status = .reading
+    /// Strips that failed while others on this page succeeded.
+    var failedParts = 0
+
+    var dishCount: Int { result?.items.count ?? 0 }
+}
+
 @MainActor
 @Observable
 final class ScanViewModel {
     enum Phase: Equatable {
-        /// The photo is too small to read; waiting for the user to retake or insist.
+        /// A single photo too small to read; waiting for the user to retake or insist.
         case tooSmall
         case analyzing
         case done
+        /// Every page failed.
         case failed(String)
     }
 
     /// Photos with a long edge below this are almost never legible.
     static let minimumLongEdge: CGFloat = 900
     static let maxConcurrentRequests = 3
+    /// Most pages one scan accepts; each page is held in memory at working size.
+    static let maximumPages = 8
 
     private(set) var phase: Phase = .analyzing
-    /// Dishes read so far. Fills in strip by strip while `phase` is `.analyzing`.
-    private(set) var result: MenuResult?
+    private(set) var pages: [PageState] = []
     private(set) var completedParts = 0
     private(set) var totalParts = 1
-    /// True while re-reading, one effort level up, a page whose first read found nothing.
+    /// True while re-reading, one effort level up, pages whose first read found nothing.
     private(set) var isSecondAttempt = false
-    /// Strips that failed while others succeeded.
-    private(set) var failedParts = 0
 
-    let sourcePixelSize: CGSize
-    private let sourceImage: UIImage
+    let sourceImages: [UIImage]
     private let makeAnalyzer: (AnalysisEffort) -> MenuAnalyzer
     private let strips: Int
     private let effort: AnalysisEffort
@@ -49,24 +68,34 @@ final class ScanViewModel {
     private var photoCache: [UUID: UIImage] = [:]
 
     init(
-        image: UIImage,
+        images: [UIImage],
         strips: Int = AppSettings.strips,
         effort: AnalysisEffort = AppSettings.effort,
         makeAnalyzer: @escaping (AnalysisEffort) -> MenuAnalyzer = AppSettings.makeAnalyzer
     ) {
-        self.effort = effort
-        self.sourceImage = image
+        self.sourceImages = Array(images.prefix(Self.maximumPages))
         self.strips = strips
+        self.effort = effort
         self.makeAnalyzer = makeAnalyzer
-        self.sourcePixelSize = CGSize(
-            width: image.size.width * image.scale, height: image.size.height * image.scale)
+    }
+
+    /// Dishes from every page, in page order. The order summary is built from these.
+    var allDishes: [Dish] {
+        pages.flatMap { $0.result?.items.map(\.dish) ?? [] }
+    }
+
+    /// Pixel size of the first photo, for the too-small message.
+    var firstPixelSize: CGSize {
+        guard let image = sourceImages.first else { return .zero }
+        return CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
     }
 
     /// Runs the analysis once; later calls (view re-appearing) do nothing.
     func start() async {
         guard !hasStarted else { return }
         hasStarted = true
-        if max(sourcePixelSize.width, sourcePixelSize.height) < Self.minimumLongEdge {
+        let size = firstPixelSize
+        if sourceImages.count == 1, max(size.width, size.height) < Self.minimumLongEdge {
             phase = .tooSmall
         } else {
             await run()
@@ -86,99 +115,131 @@ final class ScanViewModel {
         let requests: [PageRequest]
     }
 
+    /// One request to send: strip `tile` of page `page`.
+    private struct Job: Hashable {
+        let page: Int
+        let tile: Int
+    }
+
     private func run() async {
         phase = .analyzing
-        result = nil
+        pages = []
         completedParts = 0
-        failedParts = 0
         isSecondAttempt = false
         photoCache = [:]
 
-        let source = sourceImage
+        let sources = sourceImages
         let strips = strips
-        guard
-            let prepared = await Task.detached(priority: .userInitiated, operation: {
-                Self.prepare(source, strips: strips)
-            }).value
-        else {
+        let prepared = await Task.detached(priority: .userInitiated) {
+            sources.compactMap { Self.prepare($0, strips: strips) }
+        }.value
+        guard !prepared.isEmpty else {
             phase = .failed("เตรียมรูปไม่สำเร็จ ลองถ่ายใหม่")
             return
         }
-        totalParts = prepared.requests.count
+        pages = prepared.enumerated().map { PageState(id: $0.offset, image: $0.element.page) }
 
-        var outcome = await readAll(prepared, effort: effort)
-        if outcome.error == nil, outcome.analysis.dishes.isEmpty, let harder = effort.harder {
-            // The first read found nothing: try once more, one effort level up.
-            isSecondAttempt = true
-            completedParts = 0
-            outcome = await readAll(prepared, effort: harder)
+        var parts = prepared.map { [PageAnalysis?](repeating: nil, count: $0.requests.count) }
+        var errors = [Error?](repeating: nil, count: prepared.count)
+        let allJobs = prepared.enumerated().flatMap { page, item in
+            item.requests.indices.map { Job(page: page, tile: $0) }
         }
 
-        if let error = outcome.error, outcome.succeeded == 0 {
-            phase = .failed(Self.message(for: error))
-            return
+        totalParts = allJobs.count
+        await read(allJobs, prepared: prepared, effort: effort, parts: &parts, errors: &errors)
+
+        // Pages whose first read came back empty get one more try, one level up.
+        if let harder = effort.harder {
+            let emptyPages = prepared.indices.filter { page in
+                errors[page] == nil && merged(parts[page], prepared[page]).dishes.isEmpty
+            }
+            if !emptyPages.isEmpty {
+                isSecondAttempt = true
+                let jobs = allJobs.filter { emptyPages.contains($0.page) }
+                completedParts = 0
+                totalParts = jobs.count
+                for page in emptyPages { pages[page].status = .reading }
+                await read(jobs, prepared: prepared, effort: harder, parts: &parts, errors: &errors)
+            }
         }
-        failedParts = prepared.requests.count - outcome.succeeded
-        publish(outcome.analysis, page: prepared.page)
-        phase = .done
+
+        for page in prepared.indices {
+            let succeeded = parts[page].compactMap { $0 }.count
+            if succeeded == 0, let error = errors[page] {
+                pages[page].status = .failed(Self.message(for: error))
+            } else {
+                pages[page].failedParts = parts[page].count - succeeded
+                pages[page].status = .done
+            }
+        }
+        let failures = pages.compactMap { page -> String? in
+            if case .failed(let message) = page.status { return message }
+            return nil
+        }
+        phase = failures.count == pages.count ? .failed(failures.first ?? "") : .done
     }
 
-    /// Sends every strip (at most three at a time), publishing dishes as each returns.
-    private func readAll(
-        _ prepared: Prepared, effort: AnalysisEffort
-    ) async -> (analysis: PageAnalysis, succeeded: Int, error: Error?) {
+    /// Sends the given strips (at most three at a time), publishing each page's dishes
+    /// as its strips return.
+    private func read(
+        _ jobs: [Job], prepared: [Prepared], effort: AnalysisEffort,
+        parts: inout [[PageAnalysis?]], errors: inout [Error?]
+    ) async {
         let analyzer = makeAnalyzer(effort)
-        var parts = [PageAnalysis?](repeating: nil, count: prepared.requests.count)
-        var firstError: Error?
+        var remaining = Dictionary(grouping: jobs, by: \.page).mapValues(\.count)
 
-        func merged() -> PageAnalysis {
-            TilePlan.merge(
-                parts.enumerated().compactMap { index, analysis in
-                    analysis.map { (prepared.tiles[index], $0) }
-                })
-        }
-
-        await withTaskGroup(of: (Int, Result<PageAnalysis, Error>).self) { group in
+        await withTaskGroup(of: (Job, Result<PageAnalysis, Error>).self) { group in
             var next = 0
             func addNext() {
-                let index = next
+                let job = jobs[next]
                 next += 1
-                let request = prepared.requests[index]
+                let request = prepared[job.page].requests[job.tile]
                 group.addTask {
                     do {
                         guard let page = try await analyzer.analyze([request]).first else {
                             throw MenuAnalyzerError.invalidResponse("no result for this part")
                         }
-                        return (index, .success(page))
+                        return (job, .success(page))
                     } catch {
-                        return (index, .failure(error))
+                        return (job, .failure(error))
                     }
                 }
             }
-            for _ in 0..<min(Self.maxConcurrentRequests, prepared.requests.count) { addNext() }
-            while let (index, outcome) = await group.next() {
+            for _ in 0..<min(Self.maxConcurrentRequests, jobs.count) { addNext() }
+            while let (job, outcome) = await group.next() {
                 completedParts += 1
                 switch outcome {
-                case .success(let page):
-                    parts[index] = page
-                    publish(merged(), page: prepared.page)
+                case .success(let analysis):
+                    parts[job.page][job.tile] = analysis
+                    publish(merged(parts[job.page], prepared[job.page]), page: job.page)
                 case .failure(let error):
-                    if firstError == nil { firstError = error }
+                    if errors[job.page] == nil { errors[job.page] = error }
                 }
-                if next < prepared.requests.count { addNext() }
+                remaining[job.page, default: 1] -= 1
+                if remaining[job.page] == 0, pages[job.page].dishCount > 0 {
+                    pages[job.page].status = .done
+                }
+                if next < jobs.count { addNext() }
             }
         }
-        return (merged(), parts.compactMap { $0 }.count, firstError)
     }
 
-    private func publish(_ analysis: PageAnalysis, page: UIImage) {
+    private func merged(_ parts: [PageAnalysis?], _ prepared: Prepared) -> PageAnalysis {
+        TilePlan.merge(
+            parts.enumerated().compactMap { index, analysis in
+                analysis.map { (prepared.tiles[index], $0) }
+            })
+    }
+
+    private func publish(_ analysis: PageAnalysis, page: Int) {
+        let image = pages[page].image
         let items = analysis.dishes.map { dish -> DishItem in
             if photoCache[dish.id] == nil, let box = dish.photoBBox {
-                photoCache[dish.id] = ImageCropper.crop(page, to: box)
+                photoCache[dish.id] = ImageCropper.crop(image, to: box)
             }
             return DishItem(dish: dish, photo: photoCache[dish.id])
         }
-        result = MenuResult(pageImage: page, items: items, notes: analysis.notesTH)
+        pages[page].result = MenuResult(pageImage: image, items: items, notes: analysis.notesTH)
     }
 
     nonisolated private static func prepare(_ source: UIImage, strips: Int) -> Prepared? {

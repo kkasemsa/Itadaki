@@ -7,6 +7,9 @@ struct DishListView: View {
     @Binding var order: Order
     /// Status line shown under the list, e.g. while more of the page is being read.
     var progress: String?
+    /// Dishes from every page of the scan, so the order can span pages. Defaults to
+    /// this page's dishes.
+    var allDishes: [Dish]?
 
     @AppStorage(AppSettings.bahtPer100YenKey) private var bahtPer100Yen = 0.0
     @State private var selected: DishItem?
@@ -103,7 +106,7 @@ struct DishListView: View {
     }
 
     private var summary: OrderSummary {
-        order.summary(for: result.items.map(\.dish))
+        order.summary(for: allDishes ?? result.items.map(\.dish))
     }
 }
 

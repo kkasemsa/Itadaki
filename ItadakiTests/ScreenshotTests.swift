@@ -50,11 +50,22 @@ final class ScreenshotTests: XCTestCase {
                 OrderSummaryView(
                     summary: sampleOrder.summary(for: dishes), bahtPerYen: 0.225,
                     order: .constant(sampleOrder)))
+            var pages = (0..<3).map { PageState(id: $0, image: preview.pageImage, result: preview) }
+            pages[0].status = .done
+            pages[1].status = .reading
+            pages[2].status = .failed("")
+            try render(
+                "8-pages" + suffix, style: style,
+                VStack(spacing: 0) {
+                    PageStrip(pages: pages, selection: .constant(0))
+                    Spacer()
+                }
+                .paperBackground())
             try render("6-settings" + suffix, style: style, SettingsView())
             let tiny = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 80)).image { _ in }
             try render(
                 "7-too-small" + suffix, style: style,
-                NavigationStack { ScanView(image: tiny) })
+                NavigationStack { ScanView(images: [tiny]) })
             try render(
                 "5-unreadable" + suffix, style: style,
                 NavigationStack {

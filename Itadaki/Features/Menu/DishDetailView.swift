@@ -6,6 +6,13 @@ struct DishDetailView: View {
     let pageImage: UIImage
     let bahtPerYen: Double
     @Environment(\.dismiss) private var dismiss
+    @State private var zoom: ZoomTarget?
+
+    /// What the full-screen viewer is showing.
+    private enum ZoomTarget: String, Identifiable {
+        case photo, page
+        var id: String { rawValue }
+    }
 
     var body: some View {
         NavigationStack {
@@ -18,6 +25,10 @@ struct DishDetailView: View {
                             .frame(maxWidth: .infinity, maxHeight: 320)
                             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                             .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+                            .overlay(alignment: .bottomTrailing) { ZoomHint() }
+                            .onTapGesture { zoom = .photo }
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityLabel("ขยายรูปอาหาร")
                     }
 
                     // Shown first and very large so the phone can be handed to staff.
@@ -62,11 +73,26 @@ struct DishDetailView: View {
                         Text("ตำแหน่งในเมนู")
                             .font(.headline)
                         PageHighlightView(image: pageImage, highlight: item.dish.textBBox)
+                            .overlay(alignment: .bottomTrailing) { ZoomHint() }
+                            .onTapGesture { zoom = .page }
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityLabel("ขยายรูปเมนู")
+                        Text("แตะรูปเพื่อขยาย")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(20)
             }
             .paperBackground()
+            .fullScreenCover(item: $zoom) { target in
+                switch target {
+                case .photo:
+                    ImageZoomScreen(image: item.photo ?? pageImage)
+                case .page:
+                    ImageZoomScreen(image: pageImage, highlight: item.dish.textBBox)
+                }
+            }
             .navigationTitle("รายละเอียด")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -75,6 +101,19 @@ struct DishDetailView: View {
                 }
             }
         }
+    }
+}
+
+/// Small badge in an image's corner showing it can be opened full screen.
+struct ZoomHint: View {
+    var body: some View {
+        Image(systemName: "arrow.up.left.and.arrow.down.right")
+            .font(.footnote.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(width: 32, height: 32)
+            .background(.black.opacity(0.5), in: Circle())
+            .padding(10)
+            .accessibilityHidden(true)
     }
 }
 

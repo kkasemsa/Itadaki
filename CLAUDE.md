@@ -4,7 +4,7 @@ The product spec and working rules are in @SPEC.md. Read it before changing anyt
 
 ## Status
 - Phase 1 (MVP) is implemented, plus menu sections, page strips, the order summary and the card UI.
-- Not started: multi-page capture, SwiftData history, iPad split view (Phase 2); offline analyzer (Phase 3).
+- Multi-page capture is done. Not started: SwiftData history, iPad split view (Phase 2); offline analyzer (Phase 3).
 
 ## Building and testing
 - App (needs a Mac): `xcodegen generate && xcodebuild -scheme Itadaki -destination 'platform=iOS Simulator,name=iPhone 16' test`

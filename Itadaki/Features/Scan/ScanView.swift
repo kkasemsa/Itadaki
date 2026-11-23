@@ -1,15 +1,15 @@
 import SwiftUI
 
-/// Analyzes one photo and shows progress, an error with retry, or the dish list.
+/// Analyzes one or more menu photos and shows, page by page, progress, an error
+/// with retry, or the dish list.
 struct ScanView: View {
     @State private var model: ScanViewModel
     @State private var order = Order()
+    @State private var selectedPage = 0
     @Environment(\.dismiss) private var dismiss
-    private let image: UIImage
 
-    init(image: UIImage) {
-        self.image = image
-        _model = State(initialValue: ScanViewModel(image: image))
+    init(images: [UIImage]) {
+        _model = State(initialValue: ScanViewModel(images: images))
     }
 
     var body: some View {
@@ -18,56 +18,88 @@ struct ScanView: View {
             case .tooSmall:
                 tooSmall
             case .failed(let message):
-                ContentUnavailableView {
-                    Label("อ่านเมนูไม่สำเร็จ", systemImage: "exclamationmark.triangle")
-                } description: {
-                    Text(message)
-                } actions: {
-                    Button("ลองใหม่") { Task { await model.retry() } }
-                        .buttonStyle(.borderedProminent)
-                }
+                failure(message)
             case .analyzing, .done:
-                if let result = model.result, !result.items.isEmpty {
-                    DishListView(result: result, order: $order, progress: progressText)
-                } else if model.phase == .done {
-                    UnreadableView(image: image, notes: model.result?.notes ?? "") { dismiss() }
-                } else {
-                    analyzing
+                VStack(spacing: 0) {
+                    if model.pages.count > 1 {
+                        PageStrip(pages: model.pages, selection: $selectedPage)
+                    }
+                    if let page = currentPage {
+                        pageContent(page)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .id(page.id)
+                    } else {
+                        analyzing(image: model.sourceImages.first)
+                    }
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .paperBackground()
-        .navigationTitle("เมนู")
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Theme.paper, for: .navigationBar)
         .task { await model.start() }
     }
 
-    /// Status line shown under the list while more of the page is still being read.
-    private var progressText: String? {
-        if model.phase == .analyzing {
-            return "กำลังอ่านส่วนที่เหลือ… (\(model.completedParts)/\(model.totalParts))"
+    private var title: String {
+        model.pages.count > 1 ? "เมนู · หน้า \(selectedPage + 1)/\(model.pages.count)" : "เมนู"
+    }
+
+    private var currentPage: PageState? {
+        model.pages.indices.contains(selectedPage) ? model.pages[selectedPage] : model.pages.first
+    }
+
+    @ViewBuilder
+    private func pageContent(_ page: PageState) -> some View {
+        if let result = page.result, !result.items.isEmpty {
+            DishListView(
+                result: result, order: $order, progress: progressText(page), allDishes: model.allDishes)
+        } else {
+            switch page.status {
+            case .reading:
+                analyzing(image: page.image)
+            case .done:
+                UnreadableView(image: page.image, notes: page.result?.notes ?? "") { dismiss() }
+            case .failed(let message):
+                failure(message)
+            }
         }
-        if model.failedParts > 0 {
-            return "อ่านไม่สำเร็จ \(model.failedParts) จาก \(model.totalParts) ส่วน รายการอาจไม่ครบ"
-        }
+    }
+
+    /// Status line shown under a page's list while more of it is still being read.
+    private func progressText(_ page: PageState) -> String? {
+        if page.status == .reading { return "กำลังอ่านส่วนที่เหลือของหน้านี้…" }
+        if page.failedParts > 0 { return "อ่านไม่สำเร็จ \(page.failedParts) ส่วนของหน้านี้ รายการอาจไม่ครบ" }
         return nil
     }
 
-    private var analyzing: some View {
+    private func failure(_ message: String) -> some View {
+        ContentUnavailableView {
+            Label("อ่านเมนูไม่สำเร็จ", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text(message)
+        } actions: {
+            Button("ลองใหม่") { Task { await model.retry() } }
+                .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private func analyzing(image: UIImage?) -> some View {
         VStack(spacing: 22) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .overlay { ScanBeam() }
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .strokeBorder(Theme.hairline, lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
-                .frame(maxHeight: 380)
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .overlay { ScanBeam() }
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(Theme.hairline, lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+                    .frame(maxHeight: 380)
+            }
             Text("読み取り中")
                 .font(Theme.mincho(15, relativeTo: .footnote))
                 .foregroundStyle(Theme.accent)
@@ -92,12 +124,83 @@ struct ScanView: View {
             Label("รูปเล็กเกินไป", systemImage: "arrow.up.left.and.arrow.down.right")
         } description: {
             Text(
-                "รูปนี้มีขนาด \(Int(model.sourcePixelSize.width))×\(Int(model.sourcePixelSize.height)) พิกเซล ตัวหนังสือน่าจะเล็กเกินกว่าจะอ่านออก ลองใช้รูปที่ถ่ายจากกล้องโดยตรง"
+                "รูปนี้มีขนาด \(Int(model.firstPixelSize.width))×\(Int(model.firstPixelSize.height)) พิกเซล ตัวหนังสือน่าจะเล็กเกินกว่าจะอ่านออก ลองใช้รูปที่ถ่ายจากกล้องโดยตรง"
             )
         } actions: {
             Button("เลือกรูปใหม่") { dismiss() }
                 .buttonStyle(.borderedProminent)
             Button("ลองอ่านรูปนี้") { Task { await model.retry() } }
+        }
+    }
+}
+
+/// Thumbnails of the scanned pages; tapping one shows that page's dishes.
+struct PageStrip: View {
+    let pages: [PageState]
+    @Binding var selection: Int
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(pages) { page in
+                    Button {
+                        selection = page.id
+                    } label: {
+                        thumbnail(page)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("หน้า \(page.id + 1)")
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .background(Theme.paper)
+        .overlay(alignment: .bottom) { Theme.hairline.frame(height: 1) }
+    }
+
+    private func thumbnail(_ page: PageState) -> some View {
+        let isSelected = page.id == selection
+        return VStack(spacing: 5) {
+            Color.clear
+                .frame(width: 58, height: 74)
+                .overlay { Image(uiImage: page.image).resizable().scaledToFill() }
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(isSelected ? Theme.accent : Theme.hairline, lineWidth: isSelected ? 2.5 : 1)
+                }
+                .overlay { badge(page) }
+                .opacity(isSelected ? 1 : 0.75)
+            Text("หน้า \(page.id + 1)")
+                .font(.caption2.weight(isSelected ? .bold : .regular))
+                .foregroundStyle(isSelected ? Theme.accent : .secondary)
+        }
+    }
+
+    /// Spinner while a page is being read, a warning if it failed, else its dish count.
+    @ViewBuilder
+    private func badge(_ page: PageState) -> some View {
+        switch page.status {
+        case .reading:
+            ProgressView()
+                .tint(.white)
+                .frame(width: 30, height: 30)
+                .background(.black.opacity(0.5), in: Circle())
+        case .failed:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.yellow)
+                .frame(width: 30, height: 30)
+                .background(.black.opacity(0.5), in: Circle())
+        case .done:
+            Text("\(page.dishCount)")
+                .font(.caption.weight(.bold).monospacedDigit())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2)
+                .background(Theme.accent, in: Capsule())
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(4)
         }
     }
 }

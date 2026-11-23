@@ -1,9 +1,13 @@
 import PhotosUI
 import SwiftUI
 
-/// Home screen: take or pick one menu photo, then hand it to the scan screen.
+/// Home screen: photograph menu pages one after another, or pick several photos,
+/// then hand them to the scan screen.
 struct CaptureView: View {
-    @State private var pickedItem: PhotosPickerItem?
+    @State private var pickedItems: [PhotosPickerItem] = []
+    /// Pages photographed so far and waiting to be read.
+    @State private var staged: [UIImage] = []
+    @State private var isLoading = false
     @State private var showCamera = false
     @State private var showSettings = false
     @State private var scanInput: ScanInput?
@@ -54,24 +58,50 @@ struct CaptureView: View {
                         .padding(.bottom, 4)
                     }
 
-                    Button {
-                        showCamera = true
-                    } label: {
-                        Label("ถ่ายรูปเมนู", systemImage: "camera.fill")
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(!CameraPicker.isAvailable)
-                    .opacity(CameraPicker.isAvailable ? 1 : 0.45)
+                    if staged.isEmpty {
+                        Button {
+                            showCamera = true
+                        } label: {
+                            Label("ถ่ายรูปเมนู", systemImage: "camera.fill")
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .disabled(!CameraPicker.isAvailable)
+                        .opacity(CameraPicker.isAvailable ? 1 : 0.45)
 
-                    PhotosPicker(selection: $pickedItem, matching: .images) {
-                        Label("เลือกรูปจากคลัง", systemImage: "photo.on.rectangle")
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
+                        PhotosPicker(
+                            selection: $pickedItems, maxSelectionCount: ScanViewModel.maximumPages,
+                            selectionBehavior: .ordered, matching: .images
+                        ) {
+                            Label("เลือกรูปจากคลัง", systemImage: "photo.on.rectangle")
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
 
-                    Text("ถ่ายทีละหน้า ให้ตัวหนังสือชัดและไม่มีแสงสะท้อน")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 6)
+                        Text("เมนูหลายหน้า ถ่ายต่อกันหรือเลือกหลายรูปได้ สูงสุด \(ScanViewModel.maximumPages) หน้า")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 6)
+                    } else {
+                        StagedPages(images: $staged)
+
+                        Button {
+                            let images = staged
+                            staged = []
+                            scanInput = ScanInput(images: images)
+                        } label: {
+                            Label("อ่านเมนู \(staged.count) หน้า", systemImage: "text.viewfinder")
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+
+                        Button {
+                            showCamera = true
+                        } label: {
+                            Label("ถ่ายหน้าถัดไป", systemImage: "camera.fill")
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
+                        .disabled(staged.count >= ScanViewModel.maximumPages)
+                        .opacity(staged.count >= ScanViewModel.maximumPages ? 0.45 : 1)
+                    }
                 }
             }
             .padding(.horizontal, 28)
@@ -90,12 +120,12 @@ struct CaptureView: View {
                 }
             }
             .navigationDestination(item: $scanInput) { input in
-                ScanView(image: input.image)
+                ScanView(images: input.images)
             }
             .fullScreenCover(isPresented: $showCamera) {
                 CameraPicker { image in
                     showCamera = false
-                    if let image { scanInput = ScanInput(image: image) }
+                    if let image { Task { await stage(image) } }
                 }
                 .ignoresSafeArea()
             }
@@ -106,10 +136,18 @@ struct CaptureView: View {
             .alert("เปิดรูปนี้ไม่ได้", isPresented: $loadFailed) {
                 Button("ตกลง", role: .cancel) {}
             }
-            .onChange(of: pickedItem) { _, item in
-                guard let item else { return }
-                pickedItem = nil
-                Task { await load(item) }
+            .onChange(of: pickedItems) { _, items in
+                guard !items.isEmpty else { return }
+                pickedItems = []
+                Task { await load(items) }
+            }
+            .overlay {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.large)
+                        .padding(28)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                }
             }
         }
     }
@@ -118,19 +156,86 @@ struct CaptureView: View {
         canAnalyze = AppSettings.hasAPIKey || AppSettings.isSampleMode
     }
 
-    private func load(_ item: PhotosPickerItem) async {
-        if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-            scanInput = ScanInput(image: image)
-        } else {
-            loadFailed = true
+    /// Adds a camera shot to the waiting pages, shrunk to working size so several
+    /// full-resolution photos are never held in memory at once.
+    private func stage(_ image: UIImage) async {
+        isLoading = true
+        defer { isLoading = false }
+        staged.append(await Self.shrink(image))
+    }
+
+    /// Loads the picked photos in the order chosen and starts reading them.
+    private func load(_ items: [PhotosPickerItem]) async {
+        isLoading = true
+        defer { isLoading = false }
+        var images: [UIImage] = []
+        for item in items {
+            if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                images.append(await Self.shrink(image))
+            }
         }
+        if images.isEmpty {
+            loadFailed = true
+        } else {
+            scanInput = ScanInput(images: images)
+        }
+    }
+
+    private static func shrink(_ image: UIImage) async -> UIImage {
+        await Task.detached(priority: .userInitiated) {
+            ImageCropper.normalized(image, maxLongEdge: ImageCropper.workingLongEdge)
+        }.value
     }
 }
 
-/// One photo on its way to analysis.
+/// Row of photographed pages waiting to be read, each removable.
+struct StagedPages: View {
+    @Binding var images: [UIImage]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(Array(images.enumerated()), id: \.offset) { index, image in
+                    Color.clear
+                        .frame(width: 72, height: 96)
+                        .overlay { Image(uiImage: image).resizable().scaledToFill() }
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(alignment: .bottomLeading) {
+                            Text("\(index + 1)")
+                                .font(.caption.weight(.bold).monospacedDigit())
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .background(Theme.accent, in: Capsule())
+                                .padding(5)
+                        }
+                        .overlay(alignment: .topTrailing) {
+                            Button {
+                                images.remove(at: index)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 22, height: 22)
+                                    .background(.black.opacity(0.6), in: Circle())
+                            }
+                            .accessibilityLabel("ลบหน้า \(index + 1)")
+                            .padding(4)
+                        }
+                        .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+                }
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 2)
+        }
+        .padding(.bottom, 4)
+    }
+}
+
+/// The photos on their way to analysis, one per menu page.
 struct ScanInput: Identifiable, Hashable {
     let id = UUID()
-    let image: UIImage
+    let images: [UIImage]
 
     static func == (lhs: ScanInput, rhs: ScanInput) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
