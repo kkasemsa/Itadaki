@@ -127,7 +127,7 @@ final class ClaudeMenuAnalyzerTests: XCTestCase {
 
     func testStripRequestSendsOverviewFirstAndThoroughEffort() async throws {
         let stub = Stub([(200, reply(text: MockMenuAnalyzer.fixtureJSON))])
-        let analyzer = ClaudeMenuAnalyzer(apiKey: "k", effort: .thorough, transport: stub.transport)
+        let analyzer = ClaudeMenuAnalyzer(apiKey: "k", effort: .high, transport: stub.transport)
         let strip = Data([1, 2]), overview = Data([3, 4])
 
         _ = try await analyzer.analyzePage(PageRequest(image: strip, overview: overview))
@@ -141,6 +141,14 @@ final class ClaudeMenuAnalyzerTests: XCTestCase {
         XCTAssertEqual(first["data"] as? String, overview.base64EncodedString())
         XCTAssertEqual(second["data"] as? String, strip.base64EncodedString())
         XCTAssertEqual((json["output_config"] as? [String: Any])?["effort"] as? String, "high")
+    }
+
+    func testEffortLevels() {
+        XCTAssertEqual(AnalysisEffort.allCases.map(\.rawValue), ["low", "medium", "high"])
+        XCTAssertEqual(AnalysisEffort.low.harder, .medium)
+        XCTAssertEqual(AnalysisEffort.medium.harder, .high)
+        XCTAssertNil(AnalysisEffort.high.harder)
+        XCTAssertTrue(ClaudeMenuAnalyzer.knownModels.contains { $0.id == ClaudeMenuAnalyzer.defaultModel })
     }
 
     func testPagesKeepOrder() async throws {

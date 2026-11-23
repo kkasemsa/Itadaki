@@ -36,10 +36,10 @@ Models/         Menu, MenuPage, Dish (SwiftData)
 
 ## Primary analyzer: Claude API (vision)
 - Endpoint: `POST https://api.anthropic.com/v1/messages`, headers `x-api-key`, `anthropic-version: 2023-06-01`.
-- Default model `claude-sonnet-5-5`, configurable in Settings.
+- Default model `claude-sonnet-5-5`; Settings offers Haiku 5.5, Sonnet 5.5, Opus 5.5, Fable 5.2 or a typed model id, and a thinking level (low / medium / high, default low).
 - Send each page as base64 JPEG (resize long edge ≈ 1568 px, quality 0.8).
 - Small text: a page is cut into 1–3 overlapping strips across its long edge (Settings, default 2). Each strip is sent in its own request together with the whole page for context; results are mapped back to page coordinates and items seen twice in an overlap are merged.
-- A quick read (low effort) that finds nothing is retried once at high effort. Photos under 900 px on the long edge are flagged before sending.
+- A read that finds nothing is retried once, one thinking level up. Photos under 900 px on the long edge are flagged before sending.
 - Partly illegible pages return the items that can be read, with a note about the rest; nothing is guessed.
 - Ask for **JSON only**, matching this schema per page:
 

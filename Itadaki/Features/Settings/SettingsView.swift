@@ -5,7 +5,25 @@ struct SettingsView: View {
     @AppStorage(AppSettings.modelKey) private var model = ClaudeMenuAnalyzer.defaultModel
     @AppStorage(AppSettings.bahtPer100YenKey) private var bahtPer100Yen = 0.0
     @AppStorage(AppSettings.stripsKey) private var strips = AppSettings.defaultStrips
+    @AppStorage(AppSettings.effortKey) private var effort = AnalysisEffort.low.rawValue
     @AppStorage(AppSettings.sampleModeKey) private var sampleMode = false
+    /// True when the user chose to type a model id that is not in the list.
+    @State private var customModel = false
+
+    private static let customTag = "custom"
+
+    /// Picker selection: a known model id, or `customTag` for anything else.
+    private var modelChoice: Binding<String> {
+        Binding(
+            get: {
+                let known = ClaudeMenuAnalyzer.knownModels.contains { $0.id == model }
+                return customModel || !known ? Self.customTag : model
+            },
+            set: { choice in
+                customModel = choice == Self.customTag
+                if !customModel { model = choice }
+            })
+    }
     @State private var apiKey = ""
     @State private var saveFailed = false
 
@@ -24,13 +42,28 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    TextField(ClaudeMenuAnalyzer.defaultModel, text: $model)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    Picker("โมเดล", selection: modelChoice) {
+                        ForEach(ClaudeMenuAnalyzer.knownModels, id: \.id) { known in
+                            Text(known.name).tag(known.id)
+                        }
+                        Text("กำหนดเอง").tag(Self.customTag)
+                    }
+                    if modelChoice.wrappedValue == Self.customTag {
+                        TextField("model id", text: $model)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    Picker("ระดับการคิด", selection: $effort) {
+                        Text("เร็ว").tag(AnalysisEffort.low.rawValue)
+                        Text("ปกติ").tag(AnalysisEffort.medium.rawValue)
+                        Text("ละเอียด").tag(AnalysisEffort.high.rawValue)
+                    }
                 } header: {
-                    Text("โมเดล")
+                    Text("การอ่านเมนู")
                 } footer: {
-                    Text("ค่าเริ่มต้น \(ClaudeMenuAnalyzer.defaultModel)")
+                    Text(
+                        "Sonnet 5.5 เหมาะกับเมนูทั่วไป ถ้าเป็นลายมือหรืออ่านยาก ลองเพิ่มระดับการคิดก่อน แล้วค่อยเปลี่ยนเป็น Opus 5.5 (ราคาราว 2 เท่า) หรือ Fable 5.2 (ราว 4 เท่าและช้ากว่า) ส่วน Haiku 5.5 ถูกและเร็วที่สุด เหมาะกับเมนูตัวพิมพ์ชัด ๆ"
+                    )
                 }
 
                 Section {
@@ -48,13 +81,13 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Picker("ความละเอียดในการอ่าน", selection: $strips) {
-                        Text("ปกติ").tag(1)
-                        Text("ละเอียด").tag(2)
-                        Text("ละเอียดมาก").tag(3)
+                    Picker("การแบ่งรูป", selection: $strips) {
+                        Text("ไม่แบ่ง").tag(1)
+                        Text("2 ส่วน").tag(2)
+                        Text("3 ส่วน").tag(3)
                     }
                 } footer: {
-                    Text("แบ่งรูปเป็น 1, 2 หรือ 3 ส่วนก่อนส่งอ่าน ยิ่งแบ่งมาก ตัวหนังสือเล็กยิ่งอ่านออก แต่ค่า API ต่อรูปเพิ่มตามจำนวนส่วน")
+                    Text("แบ่งรูปเป็นส่วนก่อนส่งอ่าน ยิ่งแบ่งมาก ตัวหนังสือเล็กยิ่งอ่านออก แต่ค่า API ต่อรูปเพิ่มตามจำนวนส่วน")
                 }
 
                 Section {

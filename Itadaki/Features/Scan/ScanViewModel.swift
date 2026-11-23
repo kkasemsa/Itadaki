@@ -35,7 +35,7 @@ final class ScanViewModel {
     private(set) var result: MenuResult?
     private(set) var completedParts = 0
     private(set) var totalParts = 1
-    /// True while re-reading a page whose quick read found nothing.
+    /// True while re-reading, one effort level up, a page whose first read found nothing.
     private(set) var isSecondAttempt = false
     /// Strips that failed while others succeeded.
     private(set) var failedParts = 0
@@ -44,14 +44,17 @@ final class ScanViewModel {
     private let sourceImage: UIImage
     private let makeAnalyzer: (AnalysisEffort) -> MenuAnalyzer
     private let strips: Int
+    private let effort: AnalysisEffort
     private var hasStarted = false
     private var photoCache: [UUID: UIImage] = [:]
 
     init(
         image: UIImage,
         strips: Int = AppSettings.strips,
+        effort: AnalysisEffort = AppSettings.effort,
         makeAnalyzer: @escaping (AnalysisEffort) -> MenuAnalyzer = AppSettings.makeAnalyzer
     ) {
+        self.effort = effort
         self.sourceImage = image
         self.strips = strips
         self.makeAnalyzer = makeAnalyzer
@@ -103,12 +106,12 @@ final class ScanViewModel {
         }
         totalParts = prepared.requests.count
 
-        var outcome = await readAll(prepared, effort: .quick)
-        if outcome.error == nil, outcome.analysis.dishes.isEmpty {
-            // A quick read found nothing: try once more, thinking harder.
+        var outcome = await readAll(prepared, effort: effort)
+        if outcome.error == nil, outcome.analysis.dishes.isEmpty, let harder = effort.harder {
+            // The first read found nothing: try once more, one effort level up.
             isSecondAttempt = true
             completedParts = 0
-            outcome = await readAll(prepared, effort: .thorough)
+            outcome = await readAll(prepared, effort: harder)
         }
 
         if let error = outcome.error, outcome.succeeded == 0 {

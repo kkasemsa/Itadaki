@@ -10,6 +10,8 @@ enum AppSettings {
     /// How many strips a page is cut into before upload (1–3).
     static let stripsKey = "pageStrips"
     static let defaultStrips = 2
+    /// Raw value of `AnalysisEffort` for the first read of a page.
+    static let effortKey = "analysisEffort"
 
     static var hasAPIKey: Bool {
         !(KeychainStore.string(for: KeychainStore.apiKeyAccount) ?? "").isEmpty
@@ -25,6 +27,10 @@ enum AppSettings {
         if isSampleMode { return 1 }
         let stored = UserDefaults.standard.integer(forKey: stripsKey)
         return stored == 0 ? defaultStrips : min(max(stored, 1), 3)
+    }
+
+    static var effort: AnalysisEffort {
+        UserDefaults.standard.string(forKey: effortKey).flatMap(AnalysisEffort.init(rawValue:)) ?? .low
     }
 
     static func makeAnalyzer(effort: AnalysisEffort) -> MenuAnalyzer {

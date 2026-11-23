@@ -9,6 +9,13 @@ struct ClaudeMenuAnalyzer: MenuAnalyzer {
     typealias Transport = @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse)
 
     static let defaultModel = "claude-sonnet-5-5"
+    /// Models offered in Settings, cheapest first. Any other model id can be typed in.
+    static let knownModels: [(id: String, name: String)] = [
+        ("claude-haiku-5-5", "Haiku 5.5"),
+        ("claude-sonnet-5-5", "Sonnet 5.5"),
+        ("claude-opus-5-5", "Opus 5.5"),
+        ("claude-fable-5-2", "Fable 5.2"),
+    ]
     static let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
     static let maxConcurrentPages = 3
 
@@ -20,7 +27,7 @@ struct ClaudeMenuAnalyzer: MenuAnalyzer {
     init(
         apiKey: String,
         model: String = ClaudeMenuAnalyzer.defaultModel,
-        effort: AnalysisEffort = .quick,
+        effort: AnalysisEffort = .low,
         transport: Transport? = nil
     ) {
         self.effort = effort
@@ -110,15 +117,15 @@ struct ClaudeMenuAnalyzer: MenuAnalyzer {
             "system": MenuPrompt.system,
             "messages": messages,
             "output_config": [
-                // Reading a menu needs little deliberation; low effort keeps the wait short.
-                // The thorough setting is for a second attempt at a page that read as empty.
-                "effort": effort == .quick ? "low" : "high",
+                // Reading a printed menu needs little deliberation, so the default is low
+                // to keep the wait short; the user can raise it in Settings.
+                "effort": effort.rawValue,
                 "format": ["type": "json_schema", "schema": MenuPrompt.outputSchema],
             ] as [String: Any],
         ]
         var request = URLRequest(url: Self.endpoint)
         request.httpMethod = "POST"
-        request.timeoutInterval = 180
+        request.timeoutInterval = 300
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.setValue("application/json", forHTTPHeaderField: "content-type")

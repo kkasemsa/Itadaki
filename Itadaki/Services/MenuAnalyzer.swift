@@ -22,10 +22,20 @@ struct PageRequest: Sendable {
     }
 }
 
-/// How hard the analyzer should work. `thorough` is slower and is used as a second
-/// attempt when a quick read finds nothing.
-enum AnalysisEffort: Sendable {
-    case quick, thorough
+/// How much the analyzer deliberates over a page. Higher levels are slower and cost
+/// more but cope better with handwriting and cramped menus.
+enum AnalysisEffort: String, CaseIterable, Sendable {
+    case low, medium, high
+
+    /// The next level up, used for a second attempt at a page that read as empty.
+    /// Nil when already at the top.
+    var harder: AnalysisEffort? {
+        switch self {
+        case .low: return .medium
+        case .medium: return .high
+        case .high: return nil
+        }
+    }
 }
 
 enum MenuAnalyzerError: Error, Equatable, LocalizedError {
