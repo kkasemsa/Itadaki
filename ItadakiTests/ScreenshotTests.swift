@@ -50,6 +50,11 @@ final class ScreenshotTests: XCTestCase {
                 OrderSummaryView(
                     summary: sampleOrder.summary(for: dishes), bahtPerYen: 0.225,
                     order: .constant(sampleOrder)))
+            try render("6-settings" + suffix, style: style, SettingsView())
+            let tiny = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 80)).image { _ in }
+            try render(
+                "7-too-small" + suffix, style: style,
+                NavigationStack { ScanView(image: tiny) })
             try render(
                 "5-unreadable" + suffix, style: style,
                 NavigationStack {
