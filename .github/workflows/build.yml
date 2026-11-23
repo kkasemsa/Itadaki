@@ -5,6 +5,8 @@ on:
 jobs:
   ios:
     runs-on: macos-15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
@@ -35,3 +37,20 @@ jobs:
           name: screenshots
           path: /tmp/itadaki-snapshots
           if-no-files-found: warn
+      # The rendered screens are also kept in the repo, downscaled, so they can be
+      # reviewed without downloading the artifact. Commits only when a screen changed.
+      - name: Commit screenshots
+        if: success() && github.event_name == 'push' && github.ref_name != 'main'
+        run: |
+          mkdir -p docs/screenshots
+          for f in /tmp/itadaki-snapshots/*.png; do
+            sips -s format jpeg -s formatOptions 80 -Z 1000 "$f" \
+              --out "docs/screenshots/$(basename "${f%.png}").jpg" >/dev/null
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          if ! git diff --cached --quiet; then
+            git commit -m "Update screenshots [skip ci]"
+            git push || echo "::warning::Branch moved on; screenshots not pushed"
+          fi
