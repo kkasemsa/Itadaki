@@ -25,10 +25,11 @@ Features/
   History/      Saved menus
   Settings/     API key, model, yen→baht rate
 Services/
-  MenuAnalyzer  protocol: analyze(images) async throws -> [PageAnalysis]
+  MenuAnalyzer  protocol: analyze(requests) async throws -> [PageAnalysis]
   ClaudeMenuAnalyzer   online, primary
   OnDeviceMenuAnalyzer offline fallback (Phase 3)
   ImageCropper  crop dish photos from normalized bounding boxes
+  TilePlan      split a page into overlapping strips, merge strip results
   KeychainStore
 Models/         Menu, MenuPage, Dish (SwiftData)
 ```
@@ -37,6 +38,9 @@ Models/         Menu, MenuPage, Dish (SwiftData)
 - Endpoint: `POST https://api.anthropic.com/v1/messages`, headers `x-api-key`, `anthropic-version: 2023-06-01`.
 - Default model `claude-sonnet-5-5`, configurable in Settings.
 - Send each page as base64 JPEG (resize long edge ≈ 1568 px, quality 0.8).
+- Small text: a page is cut into 1–3 overlapping strips across its long edge (Settings, default 2). Each strip is sent in its own request together with the whole page for context; results are mapped back to page coordinates and items seen twice in an overlap are merged.
+- A quick read (low effort) that finds nothing is retried once at high effort. Photos under 900 px on the long edge are flagged before sending.
+- Partly illegible pages return the items that can be read, with a note about the rest; nothing is guessed.
 - Ask for **JSON only**, matching this schema per page:
 
 ```json
@@ -63,8 +67,10 @@ Models/         Menu, MenuPage, Dish (SwiftData)
 - API key: entered in Settings, stored in Keychain. Never hardcode, never log, never commit.
 
 ## UI
-- **Dish list:** grouped under the section headings printed on the menu (Thai + Japanese), in menu order.
-- **Dish row:** cropped photo (if any) on the left; Thai name (large), Japanese name (large enough to point at for staff), reading (small), price ¥ (and ≈ ฿ if rate set), tag chips.
+- **Dish list:** cards grouped under the section headings printed on the menu (Thai + Japanese), in menu order, with a chip bar to jump between headings. Dishes appear as each strip finishes.
+- **Order:** each card has a quantity control; a bottom bar opens the order summary — picked dishes in very large Japanese with quantities and the total in ¥ and ≈ ฿ — to show staff.
+- **Unreadable page:** short explanation, photo tips and a retake button.
+- **Dish row:** cropped photo (if any) on the left; Thai name (large), Japanese name (large enough to point at for staff), reading (small), price ¥ (and ≈ ฿ if rate set, entered as baht per 100 yen), tag chips. The photo column is hidden when the page has no dish photos.
 - **Tap a dish:** detail sheet with the Japanese name very large (to show staff), larger photo and description. On the original page, highlight its `text_bbox`.
 - **iPad:** `NavigationSplitView` with the original page (zoomable, boxes overlaid) on one side and the dish list on the other; selecting either side highlights the other.
 - Dishes without photos still appear, with a neutral placeholder.

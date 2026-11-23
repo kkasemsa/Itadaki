@@ -3,7 +3,8 @@
 The product spec and working rules are in @SPEC.md. Read it before changing anything.
 
 ## Status
-- Phase 1 (MVP) is implemented. Phases 2–4 are not started.
+- Phase 1 (MVP) is implemented, plus menu sections, page strips, the order summary and the card UI.
+- Not started: multi-page capture, SwiftData history, iPad split view (Phase 2); offline analyzer (Phase 3).
 
 ## Building and testing
 - App (needs a Mac): `xcodegen generate && xcodebuild -scheme Itadaki -destination 'platform=iOS Simulator,name=iPhone 16' test`
@@ -14,4 +15,6 @@ The product spec and working rules are in @SPEC.md. Read it before changing anyt
 ## Conventions
 - `Dish`/`PageAnalysis` decoding is deliberately lenient about everything except names; keep
   `MenuPrompt.outputSchema` in step with it.
+- Box coordinates: analyzers return boxes relative to the image they were sent; `TilePlan.merge`
+  converts them to page coordinates. Everything in `MenuResult` is in page coordinates.
 - Signing: put `DEVELOPMENT_TEAM = …` in `Config/Local.xcconfig` (gitignored). Never commit it.

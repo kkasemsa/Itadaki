@@ -3,7 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppSettings.modelKey) private var model = ClaudeMenuAnalyzer.defaultModel
-    @AppStorage(AppSettings.bahtPerYenKey) private var bahtPerYen = 0.0
+    @AppStorage(AppSettings.bahtPer100YenKey) private var bahtPer100Yen = 0.0
+    @AppStorage(AppSettings.stripsKey) private var strips = AppSettings.defaultStrips
     @AppStorage(AppSettings.sampleModeKey) private var sampleMode = false
     @State private var apiKey = ""
     @State private var saveFailed = false
@@ -32,12 +33,27 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    TextField("เช่น 0.23", value: $bahtPerYen, format: .number)
-                        .keyboardType(.decimalPad)
+                    HStack {
+                        Text("100 เยน =")
+                        TextField("เช่น 22.5", value: $bahtPer100Yen, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                        Text("บาท")
+                    }
                 } header: {
-                    Text("อัตราแลกเปลี่ยน (บาทต่อ 1 เยน)")
+                    Text("อัตราแลกเปลี่ยน")
                 } footer: {
                     Text("ใส่ 0 ถ้าไม่ต้องการแสดงราคาเป็นบาท")
+                }
+
+                Section {
+                    Picker("ความละเอียดในการอ่าน", selection: $strips) {
+                        Text("ปกติ").tag(1)
+                        Text("ละเอียด").tag(2)
+                        Text("ละเอียดมาก").tag(3)
+                    }
+                } footer: {
+                    Text("แบ่งรูปเป็น 1, 2 หรือ 3 ส่วนก่อนส่งอ่าน ยิ่งแบ่งมาก ตัวหนังสือเล็กยิ่งอ่านออก แต่ค่า API ต่อรูปเพิ่มตามจำนวนส่วน")
                 }
 
                 Section {

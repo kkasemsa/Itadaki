@@ -13,12 +13,14 @@ let package = Package(
             sources: [
                 "Models/Dish.swift",
                 "Models/MenuSection.swift",
+                "Models/Order.swift",
                 "Models/PriceFormatter.swift",
                 "Services/MenuAnalyzer.swift",
                 "Services/MenuPrompt.swift",
                 "Services/ClaudeMenuAnalyzer.swift",
                 "Services/MockMenuAnalyzer.swift",
                 "Services/CropMath.swift",
+                "Services/TilePlan.swift",
             ]
         ),
         .testTarget(

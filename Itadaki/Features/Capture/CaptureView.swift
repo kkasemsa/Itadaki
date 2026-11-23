@@ -14,11 +14,12 @@ struct CaptureView: View {
         NavigationStack {
             VStack(spacing: 24) {
                 Spacer()
-                Image(systemName: "fork.knife.circle.fill")
-                    .font(.system(size: 72))
+                Text("いただき")
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(.tint)
+                    .environment(\.locale, Locale(identifier: "ja"))
                 VStack(spacing: 8) {
-                    Text("Itadaki").font(.largeTitle.bold())
+                    Text("Itadaki").font(.system(size: 44, weight: .bold, design: .rounded))
                     Text("ถ่ายรูปเมนูภาษาญี่ปุ่น แล้วอ่านเป็นภาษาไทย")
                         .font(.body)
                         .foregroundStyle(.secondary)
@@ -43,9 +44,12 @@ struct CaptureView: View {
                         showCamera = true
                     } label: {
                         Label("ถ่ายรูปเมนู", systemImage: "camera.fill")
+                            .font(.title3.weight(.semibold))
                             .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                     }
                     .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
                     .disabled(!CameraPicker.isAvailable)
 
                     PhotosPicker(selection: $pickedItem, matching: .images) {
@@ -53,6 +57,12 @@ struct CaptureView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+
+                    Text("ถ่ายทีละหน้า ให้ตัวหนังสือชัดและไม่มีแสงสะท้อน")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
                 }
                 .controlSize(.large)
             }

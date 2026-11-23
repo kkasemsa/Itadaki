@@ -5,7 +5,8 @@ import Foundation
 struct MockMenuAnalyzer: MenuAnalyzer {
     var delay: Duration = .zero
 
-    func analyze(_ images: [Data]) async throws -> [PageAnalysis] {
+    func analyze(_ requests: [PageRequest]) async throws -> [PageAnalysis] {
+        let images = requests
         if delay > .zero { try await Task.sleep(for: delay) }
         let page = try Self.fixturePage()
         return images.map { _ in page }

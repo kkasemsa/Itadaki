@@ -44,7 +44,7 @@ final class ClaudeMenuAnalyzerTests: XCTestCase {
         let analyzer = ClaudeMenuAnalyzer(apiKey: " sk-test \n", model: "", transport: stub.transport)
         let jpeg = Data([0xFF, 0xD8, 0xFF])
 
-        let pages = try await analyzer.analyze([jpeg])
+        let pages = try await analyzer.analyze([PageRequest(image: jpeg)])
 
         XCTAssertEqual(pages.count, 1)
         XCTAssertEqual(pages[0].dishes.count, 5)
@@ -66,6 +66,7 @@ final class ClaudeMenuAnalyzerTests: XCTestCase {
         XCTAssertEqual(source["data"] as? String, jpeg.base64EncodedString())
         let format = try XCTUnwrap((json["output_config"] as? [String: Any])?["format"] as? [String: Any])
         XCTAssertEqual(format["type"] as? String, "json_schema")
+        XCTAssertEqual((json["output_config"] as? [String: Any])?["effort"] as? String, "low")
     }
 
     func testRetriesOnceWithParseError() async throws {
@@ -75,7 +76,7 @@ final class ClaudeMenuAnalyzerTests: XCTestCase {
         ])
         let analyzer = ClaudeMenuAnalyzer(apiKey: "k", transport: stub.transport)
 
-        let page = try await analyzer.analyzePage(Data([1]))
+        let page = try await analyzer.analyzePage(PageRequest(image: Data([1])))
 
         XCTAssertEqual(page.dishes.count, 5)
         XCTAssertEqual(stub.requests.count, 2)
@@ -88,7 +89,7 @@ final class ClaudeMenuAnalyzerTests: XCTestCase {
         let stub = Stub([(200, reply(text: "not json"))])
         let analyzer = ClaudeMenuAnalyzer(apiKey: "k", transport: stub.transport)
         do {
-            _ = try await analyzer.analyzePage(Data([1]))
+            _ = try await analyzer.analyzePage(PageRequest(image: Data([1])))
             XCTFail("expected failure")
         } catch MenuAnalyzerError.invalidResponse {
             XCTAssertEqual(stub.requests.count, 2)
@@ -101,7 +102,7 @@ final class ClaudeMenuAnalyzerTests: XCTestCase {
         func error(status: Int, body: String, key: String = "k") async -> MenuAnalyzerError? {
             let stub = Stub([(status, body)])
             do {
-                _ = try await ClaudeMenuAnalyzer(apiKey: key, transport: stub.transport).analyze([Data([1])])
+                _ = try await ClaudeMenuAnalyzer(apiKey: key, transport: stub.transport).analyze([PageRequest(image: Data([1]))])
                 return nil
             } catch {
                 return error as? MenuAnalyzerError
@@ -124,10 +125,28 @@ final class ClaudeMenuAnalyzerTests: XCTestCase {
         XCTAssertEqual(result, .missingAPIKey)
     }
 
+    func testStripRequestSendsOverviewFirstAndThoroughEffort() async throws {
+        let stub = Stub([(200, reply(text: MockMenuAnalyzer.fixtureJSON))])
+        let analyzer = ClaudeMenuAnalyzer(apiKey: "k", effort: .thorough, transport: stub.transport)
+        let strip = Data([1, 2]), overview = Data([3, 4])
+
+        _ = try await analyzer.analyzePage(PageRequest(image: strip, overview: overview))
+
+        let json = try body(stub.requests[0])
+        let messages = try XCTUnwrap(json["messages"] as? [[String: Any]])
+        let content = try XCTUnwrap(messages[0]["content"] as? [[String: Any]])
+        XCTAssertEqual(content.map { $0["type"] as? String }, ["text", "image", "text", "image", "text"])
+        let first = try XCTUnwrap(content[1]["source"] as? [String: Any])
+        let second = try XCTUnwrap(content[3]["source"] as? [String: Any])
+        XCTAssertEqual(first["data"] as? String, overview.base64EncodedString())
+        XCTAssertEqual(second["data"] as? String, strip.base64EncodedString())
+        XCTAssertEqual((json["output_config"] as? [String: Any])?["effort"] as? String, "high")
+    }
+
     func testPagesKeepOrder() async throws {
         let stub = Stub([(200, reply(text: MockMenuAnalyzer.fixtureJSON))])
         let analyzer = ClaudeMenuAnalyzer(apiKey: "k", transport: stub.transport)
-        let pages = try await analyzer.analyze((0..<7).map { Data([UInt8($0)]) })
+        let pages = try await analyzer.analyze((0..<7).map { PageRequest(image: Data([UInt8($0)])) })
         XCTAssertEqual(pages.count, 7)
         XCTAssertEqual(stub.requests.count, 7)
     }

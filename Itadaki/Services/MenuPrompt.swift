@@ -41,10 +41,25 @@ enum MenuPrompt {
     notes_th: page-level information the user should know, in Thai: whether prices include tax, \
     table charge or otoshi (お通し), minimum order, last order, time limits. Empty string if none.
 
-    If the image is not a menu or is unreadable, return an empty dishes list and explain in notes_th.
+    Sometimes you get two images instead: the whole page for context, then a zoomed strip of the \
+    same page. The app has cut the page into overlapping strips because the text is small, and \
+    reads each strip in a separate request. In that case extract only the items printed in the \
+    strip, use the whole-page image to find the heading each item sits under, give boxes relative \
+    to the strip, and keep notes_th to what is printed in the strip. An item cut off by the \
+    strip's edge also appears whole in the neighbouring strip and the app merges the two, so \
+    include it when you can still read its name and leave it out when you cannot.
+
+    The user would rather see the items you can read than nothing. When part of the image is \
+    blurred, cut off or illegible, return the items you can read with confidence and say in \
+    notes_th which part you could not read. Never invent an item to fill a gap: a wrong dish is \
+    worse than a missing one. If nothing is readable, or the image is not a menu, return an empty \
+    dishes list and explain why in notes_th in one or two short sentences.
     """
 
     static let user = "นี่คือรูปเมนูหนึ่งหน้า ช่วยแปลงเป็นรายการอาหารภาษาไทยตามรูปแบบที่กำหนด"
+    static let overviewLabel = "Image 1 — the whole menu page, for context only:"
+    static let stripLabel = "Image 2 — the zoomed strip to extract items from:"
+    static let userStrip = "ช่วยแปลงรายการอาหารในรูปที่ 2 เป็นภาษาไทยตามรูปแบบที่กำหนด"
 
     /// JSON Schema for `output_config.format`. Mirrors `PageAnalysis` / `Dish` decoding.
     static var outputSchema: [String: Any] {

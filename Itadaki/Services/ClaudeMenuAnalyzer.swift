@@ -14,9 +14,16 @@ struct ClaudeMenuAnalyzer: MenuAnalyzer {
 
     let apiKey: String
     let model: String
+    let effort: AnalysisEffort
     let transport: Transport
 
-    init(apiKey: String, model: String = ClaudeMenuAnalyzer.defaultModel, transport: Transport? = nil) {
+    init(
+        apiKey: String,
+        model: String = ClaudeMenuAnalyzer.defaultModel,
+        effort: AnalysisEffort = .quick,
+        transport: Transport? = nil
+    ) {
+        self.effort = effort
         self.apiKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         self.model = trimmedModel.isEmpty ? ClaudeMenuAnalyzer.defaultModel : trimmedModel
@@ -25,7 +32,8 @@ struct ClaudeMenuAnalyzer: MenuAnalyzer {
 
     // MARK: MenuAnalyzer
 
-    func analyze(_ images: [Data]) async throws -> [PageAnalysis] {
+    func analyze(_ requests: [PageRequest]) async throws -> [PageAnalysis] {
+        let images = requests
         guard !apiKey.isEmpty else { throw MenuAnalyzerError.missingAPIKey }
         guard !images.isEmpty else { return [] }
 
@@ -48,21 +56,30 @@ struct ClaudeMenuAnalyzer: MenuAnalyzer {
 
     // MARK: One page
 
-    func analyzePage(_ jpeg: Data) async throws -> PageAnalysis {
-        var messages: [[String: Any]] = [[
-            "role": "user",
-            "content": [
-                [
-                    "type": "image",
-                    "source": [
-                        "type": "base64",
-                        "media_type": "image/jpeg",
-                        "data": jpeg.base64EncodedString(),
-                    ],
+    func analyzePage(_ page: PageRequest) async throws -> PageAnalysis {
+        func image(_ jpeg: Data) -> [String: Any] {
+            [
+                "type": "image",
+                "source": [
+                    "type": "base64",
+                    "media_type": "image/jpeg",
+                    "data": jpeg.base64EncodedString(),
                 ],
-                ["type": "text", "text": MenuPrompt.user],
-            ] as [[String: Any]],
-        ]]
+            ]
+        }
+        var content: [[String: Any]]
+        if let overview = page.overview {
+            content = [
+                ["type": "text", "text": MenuPrompt.overviewLabel],
+                image(overview),
+                ["type": "text", "text": MenuPrompt.stripLabel],
+                image(page.image),
+                ["type": "text", "text": MenuPrompt.userStrip],
+            ]
+        } else {
+            content = [image(page.image), ["type": "text", "text": MenuPrompt.user]]
+        }
+        var messages: [[String: Any]] = [["role": "user", "content": content]]
 
         let first = try await send(messages: messages)
         do {
@@ -94,7 +111,8 @@ struct ClaudeMenuAnalyzer: MenuAnalyzer {
             "messages": messages,
             "output_config": [
                 // Reading a menu needs little deliberation; low effort keeps the wait short.
-                "effort": "low",
+                // The thorough setting is for a second attempt at a page that read as empty.
+                "effort": effort == .quick ? "low" : "high",
                 "format": ["type": "json_schema", "schema": MenuPrompt.outputSchema],
             ] as [String: Any],
         ]

@@ -3,9 +3,29 @@ import Foundation
 /// Turns menu page images into dishes. Implementations must be swappable
 /// (Claude online, on-device offline, mock for previews/tests).
 protocol MenuAnalyzer: Sendable {
-    /// - Parameter images: one JPEG per menu page, already resized for upload.
-    /// - Returns: one result per page, in the same order as `images`.
-    func analyze(_ images: [Data]) async throws -> [PageAnalysis]
+    /// - Returns: one result per request, in the same order as `requests`.
+    func analyze(_ requests: [PageRequest]) async throws -> [PageAnalysis]
+}
+
+/// One image to read: a whole menu page, or one zoomed strip of a page.
+struct PageRequest: Sendable {
+    /// JPEG to extract dishes from, already resized for upload. Boxes in the result
+    /// are relative to this image.
+    var image: Data
+    /// JPEG of the whole page when `image` is only a strip of it, so headings and
+    /// layout outside the strip are still visible.
+    var overview: Data?
+
+    init(image: Data, overview: Data? = nil) {
+        self.image = image
+        self.overview = overview
+    }
+}
+
+/// How hard the analyzer should work. `thorough` is slower and is used as a second
+/// attempt when a quick read finds nothing.
+enum AnalysisEffort: Sendable {
+    case quick, thorough
 }
 
 enum MenuAnalyzerError: Error, Equatable, LocalizedError {
