@@ -3,12 +3,16 @@ import SwiftUI
 struct DishRow: View {
     let item: DishItem
     let bahtPerYen: Double
+    /// False for menus with no dish photos at all, where placeholders would only waste space.
+    var showsThumbnail = true
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            DishThumbnail(photo: item.photo)
-                .frame(width: 84, height: 84)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            if showsThumbnail {
+                DishThumbnail(photo: item.photo)
+                    .frame(width: 84, height: 84)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.dish.nameTH)

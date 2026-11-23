@@ -27,7 +27,7 @@ struct DishListView: View {
                             Button {
                                 selected = item
                             } label: {
-                                DishRow(item: item, bahtPerYen: bahtPerYen)
+                                DishRow(item: item, bahtPerYen: bahtPerYen, showsThumbnail: hasPhotos)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .contentShape(Rectangle())
                             }
@@ -46,6 +46,10 @@ struct DishListView: View {
 }
 
 extension DishListView {
+    private var hasPhotos: Bool {
+        result.items.contains { $0.photo != nil }
+    }
+
     /// Dishes grouped under the headings printed on the menu, in menu order.
     private var sections: [MenuSection<DishItem>] {
         MenuSection.group(result.items) { $0.dish }
