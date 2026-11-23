@@ -13,9 +13,15 @@ struct DishRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.dish.nameTH)
                     .font(.title3.weight(.semibold))
-                Text(japaneseLine)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                // Large enough to point at when ordering from staff.
+                Text(item.dish.nameJA)
+                    .font(.title2.weight(.medium))
+                    .environment(\.locale, Locale(identifier: "ja"))
+                if !item.dish.reading.isEmpty {
+                    Text(item.dish.reading)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
                 PriceLabel(priceYen: item.dish.priceYen, bahtPerYen: bahtPerYen)
                 if !item.dish.tags.isEmpty {
                     TagChips(tags: item.dish.tags)
@@ -23,10 +29,6 @@ struct DishRow: View {
             }
         }
         .padding(.vertical, 4)
-    }
-
-    private var japaneseLine: String {
-        item.dish.reading.isEmpty ? item.dish.nameJA : "\(item.dish.nameJA) · \(item.dish.reading)"
     }
 }
 

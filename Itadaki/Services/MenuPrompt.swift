@@ -14,6 +14,10 @@ enum MenuPrompt {
     slogans and decoration.
 
     For each item:
+    - section_ja / section_th: the menu heading the item is printed under (for example 刺身, \
+    焼き物, お飲み物), exactly as printed, and its Thai translation. The app groups the list \
+    under these headings so it mirrors the menu's layout. Give every item under the same heading \
+    identical values. Use empty strings for both when the menu has no headings.
     - name_ja: the name exactly as printed.
     - reading: how to say the name, in hiragana, so the user can order it aloud.
     - name_th: a natural Thai name. Use the name Thai people already use where one exists \
@@ -49,10 +53,12 @@ enum MenuPrompt {
             "type": "object",
             "additionalProperties": false,
             "required": [
-                "name_ja", "reading", "name_th", "description_th",
+                "section_ja", "section_th", "name_ja", "reading", "name_th", "description_th",
                 "price_yen", "tags", "text_bbox", "photo_bbox",
             ],
             "properties": [
+                "section_ja": ["type": "string"],
+                "section_th": ["type": "string"],
                 "name_ja": ["type": "string"],
                 "reading": ["type": "string"],
                 "name_th": ["type": "string"],

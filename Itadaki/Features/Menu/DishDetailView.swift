@@ -19,16 +19,26 @@ struct DishDetailView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
+                    // Shown first and very large so the phone can be handed to staff.
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.dish.nameJA)
+                            .font(.system(size: 44, weight: .bold))
+                            .minimumScaleFactor(0.5)
+                            .environment(\.locale, Locale(identifier: "ja"))
+                        if !item.dish.reading.isEmpty {
+                            Text(item.dish.reading)
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+                    .textSelection(.enabled)
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text(item.dish.nameTH)
                             .font(.title2.bold())
-                        Text(item.dish.nameJA)
-                            .font(.title3)
-                        if !item.dish.reading.isEmpty {
-                            Text(item.dish.reading)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
                         PriceLabel(priceYen: item.dish.priceYen, bahtPerYen: bahtPerYen)
                         if !item.dish.tags.isEmpty {
                             TagChips(tags: item.dish.tags)

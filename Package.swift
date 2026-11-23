@@ -12,6 +12,7 @@ let package = Package(
             path: "Itadaki",
             sources: [
                 "Models/Dish.swift",
+                "Models/MenuSection.swift",
                 "Models/PriceFormatter.swift",
                 "Services/MenuAnalyzer.swift",
                 "Services/MenuPrompt.swift",

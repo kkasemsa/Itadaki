@@ -54,6 +54,9 @@ struct Dish: Identifiable, Equatable, Sendable {
     var tags: [DishTag]
     var textBBox: NormalizedRect?
     var photoBBox: NormalizedRect?
+    /// Menu heading this dish is printed under, as printed and in Thai. Empty when none.
+    var sectionJA: String
+    var sectionTH: String
 
     init(
         id: UUID = UUID(),
@@ -64,7 +67,9 @@ struct Dish: Identifiable, Equatable, Sendable {
         priceYen: Int? = nil,
         tags: [DishTag] = [],
         textBBox: NormalizedRect? = nil,
-        photoBBox: NormalizedRect? = nil
+        photoBBox: NormalizedRect? = nil,
+        sectionJA: String = "",
+        sectionTH: String = ""
     ) {
         self.id = id
         self.nameJA = nameJA
@@ -75,6 +80,8 @@ struct Dish: Identifiable, Equatable, Sendable {
         self.tags = tags
         self.textBBox = textBBox
         self.photoBBox = photoBBox
+        self.sectionJA = sectionJA
+        self.sectionTH = sectionTH
     }
 }
 
@@ -88,6 +95,8 @@ extension Dish: Decodable {
         case tags
         case textBBox = "text_bbox"
         case photoBBox = "photo_bbox"
+        case sectionJA = "section_ja"
+        case sectionTH = "section_th"
     }
 
     /// Names are required; everything else degrades gracefully so one sloppy field
@@ -120,6 +129,11 @@ extension Dish: Decodable {
             return NormalizedRect(array: array)
         }
 
+        func text(_ key: CodingKeys) -> String {
+            ((try? c.decodeIfPresent(String.self, forKey: key)) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
         self.init(
             nameJA: nameJA,
             reading: (try? c.decodeIfPresent(String.self, forKey: .reading)) ?? "",
@@ -128,7 +142,9 @@ extension Dish: Decodable {
             priceYen: price,
             tags: tags,
             textBBox: bbox(.textBBox),
-            photoBBox: bbox(.photoBBox)
+            photoBBox: bbox(.photoBBox),
+            sectionJA: text(.sectionJA),
+            sectionTH: text(.sectionTH)
         )
     }
 }

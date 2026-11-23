@@ -20,6 +20,8 @@ struct MockMenuAnalyzer: MenuAnalyzer {
     {
       "dishes": [
         {
+          "section_ja": "定食",
+          "section_th": "ชุดอาหาร",
           "name_ja": "唐揚げ定食",
           "reading": "からあげていしょく",
           "name_th": "ชุดไก่ทอดคาราอาเกะ",
@@ -30,6 +32,8 @@ struct MockMenuAnalyzer: MenuAnalyzer {
           "photo_bbox": [0.55, 0.08, 0.35, 0.22]
         },
         {
+          "section_ja": "刺身",
+          "section_th": "ซาชิมิ",
           "name_ja": "刺身盛り合わせ",
           "reading": "さしみもりあわせ",
           "name_th": "ซาชิมิรวม",
@@ -40,6 +44,8 @@ struct MockMenuAnalyzer: MenuAnalyzer {
           "photo_bbox": [0.55, 0.33, 0.35, 0.22]
         },
         {
+          "section_ja": "一品料理",
+          "section_th": "อาหารตามสั่ง",
           "name_ja": "豚キムチ炒め",
           "reading": "ぶたきむちいため",
           "name_th": "หมูผัดกิมจิ",
@@ -50,6 +56,8 @@ struct MockMenuAnalyzer: MenuAnalyzer {
           "photo_bbox": null
         },
         {
+          "section_ja": "お飲み物",
+          "section_th": "เครื่องดื่ม",
           "name_ja": "生ビール",
           "reading": "なまびーる",
           "name_th": "เบียร์สด",
@@ -60,6 +68,8 @@ struct MockMenuAnalyzer: MenuAnalyzer {
           "photo_bbox": null
         },
         {
+          "section_ja": "",
+          "section_th": "",
           "name_ja": "本日のおすすめ",
           "reading": "ほんじつのおすすめ",
           "name_th": "เมนูแนะนำประจำวัน",

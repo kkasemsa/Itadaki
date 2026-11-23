@@ -25,6 +25,27 @@ final class DishDecodingTests: XCTestCase {
         XCTAssertFalse(page.notesTH.isEmpty)
     }
 
+    func testSectionsGroupConsecutiveDishes() throws {
+        func dish(_ name: String, _ ja: String, _ th: String) -> Dish {
+            Dish(nameJA: name, nameTH: name, sectionJA: ja, sectionTH: th)
+        }
+        let dishes = [
+            dish("a", "刺身", "ซาชิมิ"), dish("b", "刺身", "ซาชิมิ"),
+            dish("c", "", ""),
+            dish("d", "焼き物", "ของย่าง"),
+            dish("e", "刺身", "ซาชิมิ"),
+        ]
+        let sections = MenuSection.group(dishes) { $0 }
+        XCTAssertEqual(sections.map(\.titleJA), ["刺身", "", "焼き物", "刺身"])
+        XCTAssertEqual(sections.map { $0.items.map(\.nameJA) }, [["a", "b"], ["c"], ["d"], ["e"]])
+        XCTAssertEqual(sections[0].titleTH, "ซาชิมิ")
+        XCTAssertTrue(MenuSection.group([Dish]()) { $0 }.isEmpty)
+
+        let fixture = try MockMenuAnalyzer.fixturePage()
+        XCTAssertEqual(fixture.dishes[0].sectionJA, "定食")
+        XCTAssertEqual(fixture.dishes[4].sectionTH, "")
+    }
+
     func testLenientFields() throws {
         let page = try decodePage("""
         {"dishes":[{"name_ja":"ラーメン","name_th":"ราเมง","price_yen":850.0,

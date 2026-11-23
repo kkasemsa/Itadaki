@@ -21,22 +21,57 @@ struct DishListView: View {
                             .font(.callout)
                     }
                 }
-                Section("\(result.items.count) รายการ") {
-                    ForEach(result.items) { item in
-                        Button {
-                            selected = item
-                        } label: {
-                            DishRow(item: item, bahtPerYen: bahtPerYen)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
+                ForEach(Array(sections.enumerated()), id: \.offset) { _, section in
+                    Section {
+                        ForEach(section.items) { item in
+                            Button {
+                                selected = item
+                            } label: {
+                                DishRow(item: item, bahtPerYen: bahtPerYen)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                    } header: {
+                        SectionHeader(section: section, fallback: "\(result.items.count) รายการ")
                     }
                 }
             }
             .sheet(item: $selected) { item in
                 DishDetailView(item: item, pageImage: result.pageImage, bahtPerYen: bahtPerYen)
             }
+        }
+    }
+}
+
+extension DishListView {
+    /// Dishes grouped under the headings printed on the menu, in menu order.
+    private var sections: [MenuSection<DishItem>] {
+        MenuSection.group(result.items) { $0.dish }
+    }
+}
+
+/// Menu heading in Thai with the printed Japanese next to it.
+private struct SectionHeader: View {
+    let section: MenuSection<DishItem>
+    let fallback: String
+
+    var body: some View {
+        if section.titleTH.isEmpty && section.titleJA.isEmpty {
+            Text(fallback)
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(section.titleTH.isEmpty ? section.titleJA : section.titleTH)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if !section.titleTH.isEmpty && !section.titleJA.isEmpty {
+                    Text(section.titleJA)
+                        .font(.subheadline)
+                        .environment(\.locale, Locale(identifier: "ja"))
+                }
+            }
+            .textCase(nil)
         }
     }
 }

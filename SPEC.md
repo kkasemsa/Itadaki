@@ -43,6 +43,8 @@ Models/         Menu, MenuPage, Dish (SwiftData)
 {
   "dishes": [
     {
+      "section_ja": "定食",
+      "section_th": "ชุดอาหาร",
       "name_ja": "唐揚げ定食",
       "reading": "からあげていしょく",
       "name_th": "ชุดไก่ทอดคาราอาเกะ",
@@ -61,8 +63,9 @@ Models/         Menu, MenuPage, Dish (SwiftData)
 - API key: entered in Settings, stored in Keychain. Never hardcode, never log, never commit.
 
 ## UI
-- **Dish row:** cropped photo (if any) on the left; Thai name (large), Japanese name + reading (small), price ¥ (and ≈ ฿ if rate set), tag chips.
-- **Tap a dish:** detail sheet with larger photo and description. On the original page, highlight its `text_bbox`.
+- **Dish list:** grouped under the section headings printed on the menu (Thai + Japanese), in menu order.
+- **Dish row:** cropped photo (if any) on the left; Thai name (large), Japanese name (large enough to point at for staff), reading (small), price ¥ (and ≈ ฿ if rate set), tag chips.
+- **Tap a dish:** detail sheet with the Japanese name very large (to show staff), larger photo and description. On the original page, highlight its `text_bbox`.
 - **iPad:** `NavigationSplitView` with the original page (zoomable, boxes overlaid) on one side and the dish list on the other; selecting either side highlights the other.
 - Dishes without photos still appear, with a neutral placeholder.
 - Show a clear loading state per page; pages are processed in parallel (max 3).
