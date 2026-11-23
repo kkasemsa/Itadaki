@@ -1,4 +1,5 @@
 #if canImport(UIKit)
+import SwiftData
 import SwiftUI
 import XCTest
 @testable import Itadaki
@@ -34,8 +35,19 @@ final class ScreenshotTests: XCTestCase {
         return order
     }
 
-    func testRenderScreens() throws {
+    private var container: ModelContainer!
+
+    func testRenderScreens() async throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        container = try ModelContainer(
+            for: SavedMenu.self, SavedPage.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let done = PageState(id: 0, image: preview.pageImage, result: preview, status: .done)
+        let saved = await HistoryStore.save(pages: [done, done], in: container.mainContext)
+        XCTAssertNotNil(saved)
+        let reloaded = await HistoryStore.load(try XCTUnwrap(saved))
+        XCTAssertEqual(reloaded.count, 2)
+        XCTAssertEqual(reloaded[0].result?.items.map(\.dish), preview.items.map(\.dish))
         let dishes = preview.items.map(\.dish)
 
         for style in [UIUserInterfaceStyle.light, .dark] {
@@ -61,6 +73,7 @@ final class ScreenshotTests: XCTestCase {
                     Spacer()
                 }
                 .paperBackground())
+            try render("9-history" + suffix, style: style, NavigationStack { HistoryView() })
             try render("6-settings" + suffix, style: style, SettingsView())
             let tiny = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 80)).image { _ in }
             try render(
@@ -80,7 +93,8 @@ final class ScreenshotTests: XCTestCase {
         let window = scene.map(UIWindow.init(windowScene:)) ?? UIWindow(frame: frame)
         window.frame = frame
         window.overrideUserInterfaceStyle = style
-        window.rootViewController = UIHostingController(rootView: view.tint(Theme.accent))
+        window.rootViewController = UIHostingController(
+            rootView: view.tint(Theme.accent).modelContainer(container))
         window.makeKeyAndVisible()
         RunLoop.main.run(until: Date().addingTimeInterval(1.0))
 

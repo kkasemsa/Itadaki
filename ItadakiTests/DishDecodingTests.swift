@@ -46,6 +46,20 @@ final class DishDecodingTests: XCTestCase {
         XCTAssertEqual(fixture.dishes[4].sectionTH, "")
     }
 
+    func testDishRoundTripsThroughJSON() throws {
+        let original = Dish(
+            nameJA: "唐揚げ定食", reading: "からあげていしょく", nameTH: "ชุดไก่ทอด",
+            descriptionTH: "ไก่ทอด", priceYen: 980, tags: [.chicken, .spicy],
+            textBBox: NormalizedRect(x: 0.125, y: 0.25, width: 0.5, height: 0.0625),
+            photoBBox: nil, sectionJA: "定食", sectionTH: "ชุดอาหาร")
+        let unpriced = Dish(nameJA: "おすすめ", nameTH: "เมนูแนะนำ")
+
+        let data = try JSONEncoder().encode([original, unpriced])
+        let decoded = try JSONDecoder().decode([Dish].self, from: data)
+
+        XCTAssertEqual(decoded, [original, unpriced], "ids, boxes and optional fields survive")
+    }
+
     func testLenientFields() throws {
         let page = try decodePage("""
         {"dishes":[{"name_ja":"ラーメン","name_th":"ราเมง","price_yen":850.0,

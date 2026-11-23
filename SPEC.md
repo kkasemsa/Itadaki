@@ -31,7 +31,7 @@ Services/
   ImageCropper  crop dish photos from normalized bounding boxes
   TilePlan      split a page into overlapping strips, merge strip results
   KeychainStore
-Models/         Menu, MenuPage, Dish (SwiftData)
+Models/         Dish (plain Codable struct); SavedMenu, SavedPage (SwiftData)
 ```
 
 ## Primary analyzer: Claude API (vision)
@@ -69,6 +69,7 @@ Models/         Menu, MenuPage, Dish (SwiftData)
 ## UI
 - **Dish list:** cards grouped under the section headings printed on the menu (Thai + Japanese), in menu order, with a chip bar to jump between headings. Dishes appear as each strip finishes.
 - **Order:** each card has a quantity control; a bottom bar opens the order summary — picked dishes in very large Japanese with quantities and the total in ¥ and ≈ ฿ — to show staff.
+- **History:** every scan that finds dishes is saved automatically (page photos, dishes, notes) and listed newest first; a saved menu opens offline with the same list, detail and order screens. Menus can be renamed and deleted.
 - **Several pages:** pick up to 8 photos at once, or photograph pages one after another into a tray before reading. Results are shown per page, with a thumbnail strip to switch pages; the order spans all pages.
 - **Zoom:** in the detail sheet, tapping the dish photo or the menu page opens it full screen with pinch-to-zoom; the page opens zoomed in on the dish's box.
 - **Unreadable page:** short explanation, photo tips and a retake button.

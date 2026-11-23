@@ -1,4 +1,5 @@
 import PhotosUI
+import SwiftData
 import SwiftUI
 
 /// Home screen: photograph menu pages one after another, or pick several photos,
@@ -8,6 +9,8 @@ struct CaptureView: View {
     /// Pages photographed so far and waiting to be read.
     @State private var staged: [UIImage] = []
     @State private var isLoading = false
+    @State private var showHistory = false
+    @Query private var savedMenus: [SavedMenu]
     @State private var showCamera = false
     @State private var showSettings = false
     @State private var scanInput: ScanInput?
@@ -81,6 +84,17 @@ struct CaptureView: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.top, 6)
+
+                        if !savedMenus.isEmpty {
+                            Button {
+                                showHistory = true
+                            } label: {
+                                Label("ประวัติเมนู (\(savedMenus.count))", systemImage: "clock.arrow.circlepath")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Theme.accent)
+                                    .padding(.vertical, 8)
+                            }
+                        }
                     } else {
                         StagedPages(images: $staged)
 
@@ -110,6 +124,14 @@ struct CaptureView: View {
             .frame(maxWidth: .infinity)
             .paperBackground(pattern: true)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showHistory = true
+                    } label: {
+                        Label("ประวัติเมนู", systemImage: "clock.arrow.circlepath")
+                    }
+                    .tint(Theme.ink)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showSettings = true
@@ -118,6 +140,9 @@ struct CaptureView: View {
                     }
                     .tint(Theme.ink)
                 }
+            }
+            .navigationDestination(isPresented: $showHistory) {
+                HistoryView()
             }
             .navigationDestination(item: $scanInput) { input in
                 ScanView(images: input.images)

@@ -4,7 +4,9 @@ The product spec and working rules are in @SPEC.md. Read it before changing anyt
 
 ## Status
 - Phase 1 (MVP) is implemented, plus menu sections, page strips, the order summary and the card UI.
-- Multi-page capture is done. Not started: SwiftData history, iPad split view (Phase 2); offline analyzer (Phase 3).
+- Multi-page capture and SwiftData history are done. Not started: iPad split view (Phase 2); offline analyzer (Phase 3).
+- History stores dishes as JSON inside `SavedPage` rather than as SwiftData models, so `Dish` stays a
+  plain struct that the Linux tests can build. Changing `Dish`'s JSON keys breaks saved menus.
 
 ## Building and testing
 - App (needs a Mac): `xcodegen generate && xcodebuild -scheme Itadaki -destination 'platform=iOS Simulator,name=iPhone 16' test`

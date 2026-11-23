@@ -7,6 +7,9 @@ struct ScanView: View {
     @State private var order = Order()
     @State private var selectedPage = 0
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    /// Set once the finished scan has been written to history.
+    @State private var isSaved = false
 
     init(images: [UIImage]) {
         _model = State(initialValue: ScanViewModel(images: images))
@@ -39,7 +42,25 @@ struct ScanView: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Theme.paper, for: .navigationBar)
+        .toolbar {
+            if isSaved {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Label("บันทึกในประวัติแล้ว", systemImage: "checkmark.circle.fill")
+                        .labelStyle(.iconOnly)
+                        .foregroundStyle(Theme.accent)
+                }
+            }
+        }
         .task { await model.start() }
+        .onChange(of: model.phase) { _, phase in
+            // Keep every finished scan so it can be reopened without another API call.
+            guard phase == .done, !isSaved else { return }
+            Task {
+                if await HistoryStore.save(pages: model.pages, in: modelContext) != nil {
+                    isSaved = true
+                }
+            }
+        }
     }
 
     private var title: String {

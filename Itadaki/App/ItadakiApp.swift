@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 @main
@@ -7,5 +8,6 @@ struct ItadakiApp: App {
             CaptureView()
                 .tint(Theme.accent)
         }
+        .modelContainer(for: [SavedMenu.self, SavedPage.self])
     }
 }

@@ -85,8 +85,11 @@ struct Dish: Identifiable, Equatable, Sendable {
     }
 }
 
-extension Dish: Decodable {
+extension Dish: Codable {
     private enum CodingKeys: String, CodingKey {
+        /// Not part of the analyzer's output; written when a menu is saved to history
+        /// so a reloaded dish keeps its identity.
+        case id
         case nameJA = "name_ja"
         case reading
         case nameTH = "name_th"
@@ -135,6 +138,7 @@ extension Dish: Decodable {
         }
 
         self.init(
+            id: (try? c.decodeIfPresent(UUID.self, forKey: .id)) ?? UUID(),
             nameJA: nameJA,
             reading: (try? c.decodeIfPresent(String.self, forKey: .reading)) ?? "",
             nameTH: nameTH,
@@ -147,6 +151,29 @@ extension Dish: Decodable {
             sectionTH: text(.sectionTH)
         )
     }
+}
+
+extension Dish {
+    /// Writes the same shape the analyzer produces, plus `id`.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(sectionJA, forKey: .sectionJA)
+        try c.encode(sectionTH, forKey: .sectionTH)
+        try c.encode(nameJA, forKey: .nameJA)
+        try c.encode(reading, forKey: .reading)
+        try c.encode(nameTH, forKey: .nameTH)
+        try c.encode(descriptionTH, forKey: .descriptionTH)
+        try c.encode(priceYen, forKey: .priceYen)
+        try c.encode(tags.map(\.rawValue), forKey: .tags)
+        try c.encode(textBBox?.array, forKey: .textBBox)
+        try c.encode(photoBBox?.array, forKey: .photoBBox)
+    }
+}
+
+extension NormalizedRect {
+    /// `[x, y, w, h]`, the form used in JSON.
+    var array: [Double] { [x, y, width, height] }
 }
 
 /// The analyzer's result for one menu page.
