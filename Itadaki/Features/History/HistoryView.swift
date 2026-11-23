@@ -90,7 +90,11 @@ private struct HistoryRow: View {
                     .font(.headline)
                     .foregroundStyle(Theme.ink)
                     .lineLimit(2)
-                Text(menu.createdAt.formatted(date: .abbreviated, time: .shortened))
+                Text(
+                    menu.createdAt.formatted(
+                        Date.FormatStyle(date: .abbreviated, time: .shortened)
+                            .locale(Locale(identifier: "th_TH")))
+                )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Text(detail)
