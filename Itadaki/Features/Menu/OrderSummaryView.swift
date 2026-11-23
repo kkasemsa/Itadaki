@@ -11,9 +11,10 @@ struct OrderSummaryView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("注文をお願いします")
-                            .font(.system(size: 30, weight: .bold))
+                            .font(Theme.mincho(32, relativeTo: .largeTitle))
+                            .foregroundStyle(Theme.ink)
                             .environment(\.locale, Locale(identifier: "ja"))
                         Text("ขอสั่งอาหารตามนี้ครับ/ค่ะ — ยื่นหน้าจอนี้ให้พนักงานดู")
                             .font(.footnote)
@@ -25,7 +26,8 @@ struct OrderSummaryView: View {
                             HStack(alignment: .firstTextBaseline, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(line.dish.nameJA)
-                                        .font(.system(size: 32, weight: .bold))
+                                        .font(Theme.mincho(32, relativeTo: .largeTitle))
+                                        .foregroundStyle(Theme.ink)
                                         .minimumScaleFactor(0.6)
                                         .environment(\.locale, Locale(identifier: "ja"))
                                     Text(line.dish.nameTH)
@@ -33,16 +35,24 @@ struct OrderSummaryView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer(minLength: 8)
-                                Text("× \(line.quantity)")
-                                    .font(.system(size: 32, weight: .bold).monospacedDigit())
-                                    .foregroundStyle(.tint)
+                                Text("\(line.quantity)")
+                                    .font(.system(size: 26, weight: .bold, design: .serif).monospacedDigit())
+                                    .foregroundStyle(.white)
+                                    .frame(width: 50, height: 50)
+                                    .background(Theme.accent, in: Circle())
+                                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 14 }
                             }
-                            .padding(.vertical, 14)
-                            if line.id != summary.lines.last?.id { Divider() }
+                            .padding(.vertical, 16)
+                            if line.id != summary.lines.last?.id {
+                                Line()
+                                    .stroke(Color.primary.opacity(0.18), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                                    .frame(height: 1)
+                            }
                         }
                     }
-                    .padding(.horizontal, 18)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 4)
+                    .paperCard()
 
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .firstTextBaseline) {
@@ -50,7 +60,8 @@ struct OrderSummaryView: View {
                                 .font(.headline)
                             Spacer()
                             Text(PriceFormatter.yen(summary.totalYen))
-                                .font(.title2.bold().monospacedDigit())
+                                .font(.system(.title, design: .serif).weight(.bold).monospacedDigit())
+                                .foregroundStyle(Theme.ink)
                         }
                         if let baht = PriceFormatter.baht(yen: summary.totalYen, bahtPerYen: bahtPerYen) {
                             Text(baht)
@@ -69,7 +80,7 @@ struct OrderSummaryView: View {
                 .frame(maxWidth: 700)
                 .frame(maxWidth: .infinity)
             }
-            .background(Color(.systemGroupedBackground))
+            .paperBackground()
             .navigationTitle("รายการที่จะสั่ง")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -83,6 +94,16 @@ struct OrderSummaryView: View {
                     Button("ปิด") { dismiss() }
                 }
             }
+        }
+    }
+
+    /// A horizontal rule, drawn as a shape so it can be dashed like an order slip.
+    private struct Line: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+            return path
         }
     }
 

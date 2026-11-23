@@ -28,3 +28,10 @@ jobs:
           fi
           grep -E "error|Test Suite|Executed|\*\* " build.log || tail -n 60 build.log
           exit "$status"
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: /tmp/itadaki-snapshots
+          if-no-files-found: warn

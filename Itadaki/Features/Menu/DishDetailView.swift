@@ -16,13 +16,19 @@ struct DishDetailView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(maxWidth: .infinity, maxHeight: 320)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
                     }
 
                     // Shown first and very large so the phone can be handed to staff.
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("これをください")
+                            .font(Theme.mincho(15, relativeTo: .footnote))
+                            .foregroundStyle(Theme.accent)
+                            .environment(\.locale, Locale(identifier: "ja"))
                         Text(item.dish.nameJA)
-                            .font(.system(size: 44, weight: .bold))
+                            .font(Theme.mincho(46, relativeTo: .largeTitle))
+                            .foregroundStyle(Theme.ink)
                             .minimumScaleFactor(0.5)
                             .environment(\.locale, Locale(identifier: "ja"))
                         if !item.dish.reading.isEmpty {
@@ -32,13 +38,14 @@ struct DishDetailView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+                    .padding(20)
+                    .paperCard()
                     .textSelection(.enabled)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(item.dish.nameTH)
                             .font(.title2.bold())
+                            .foregroundStyle(Theme.ink)
                         PriceLabel(priceYen: item.dish.priceYen, bahtPerYen: bahtPerYen)
                         if !item.dish.tags.isEmpty {
                             TagChips(tags: item.dish.tags)
@@ -59,6 +66,7 @@ struct DishDetailView: View {
                 }
                 .padding(20)
             }
+            .paperBackground()
             .navigationTitle("รายละเอียด")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -83,8 +91,8 @@ struct PageHighlightView: View {
                 GeometryReader { proxy in
                     if let highlight {
                         RoundedRectangle(cornerRadius: 4)
-                            .stroke(Color.accentColor, lineWidth: 3)
-                            .background(Color.accentColor.opacity(0.15))
+                            .stroke(Theme.accent, lineWidth: 3)
+                            .background(Theme.accent.opacity(0.18))
                             .frame(
                                 width: highlight.width * proxy.size.width,
                                 height: highlight.height * proxy.size.height
@@ -95,7 +103,7 @@ struct PageHighlightView: View {
                     }
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

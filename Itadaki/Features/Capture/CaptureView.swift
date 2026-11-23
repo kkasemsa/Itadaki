@@ -12,63 +12,73 @@ struct CaptureView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
-                Text("いただき")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.tint)
-                    .environment(\.locale, Locale(identifier: "ja"))
-                VStack(spacing: 8) {
-                    Text("Itadaki").font(.system(size: 44, weight: .bold, design: .rounded))
-                    Text("ถ่ายรูปเมนูภาษาญี่ปุ่น แล้วอ่านเป็นภาษาไทย")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                Spacer()
+            VStack(spacing: 0) {
+                Spacer(minLength: 24)
 
-                if !canAnalyze {
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Label("ใส่ Claude API key ในตั้งค่าก่อนเริ่มใช้งาน", systemImage: "key.fill")
-                            .font(.callout)
-                            .frame(maxWidth: .infinity)
+                VStack(spacing: 22) {
+                    SealEmblem()
+                    VStack(spacing: 10) {
+                        Text("Itadaki")
+                            .font(.system(size: 46, weight: .bold, design: .serif))
+                            .foregroundStyle(Theme.ink)
+                        HStack(spacing: 10) {
+                            Rectangle().fill(Theme.accent).frame(width: 22, height: 1.5)
+                            Text("いただきます")
+                                .font(Theme.mincho(17, relativeTo: .body))
+                                .foregroundStyle(Theme.accent)
+                                .environment(\.locale, Locale(identifier: "ja"))
+                            Rectangle().fill(Theme.accent).frame(width: 22, height: 1.5)
+                        }
+                        Text("ถ่ายรูปเมนูภาษาญี่ปุ่น\nอ่านเป็นภาษาไทยได้ทันที")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 6)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.orange)
                 }
+
+                Spacer(minLength: 24)
 
                 VStack(spacing: 12) {
+                    if !canAnalyze {
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Label("ใส่ Claude API key ในตั้งค่าก่อนเริ่มใช้งาน", systemImage: "key.fill")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(Theme.accent)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                                .background(Theme.accent.opacity(0.1), in: Capsule())
+                        }
+                        .padding(.bottom, 4)
+                    }
+
                     Button {
                         showCamera = true
                     } label: {
                         Label("ถ่ายรูปเมนู", systemImage: "camera.fill")
-                            .font(.title3.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.capsule)
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(!CameraPicker.isAvailable)
+                    .opacity(CameraPicker.isAvailable ? 1 : 0.45)
 
                     PhotosPicker(selection: $pickedItem, matching: .images) {
                         Label("เลือกรูปจากคลัง", systemImage: "photo.on.rectangle")
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
+                    .buttonStyle(SecondaryButtonStyle())
 
                     Text("ถ่ายทีละหน้า ให้ตัวหนังสือชัดและไม่มีแสงสะท้อน")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                        .padding(.top, 4)
+                        .padding(.top, 6)
                 }
-                .controlSize(.large)
             }
-            .padding(24)
+            .padding(.horizontal, 28)
+            .padding(.bottom, 20)
             .frame(maxWidth: 520)
             .frame(maxWidth: .infinity)
+            .paperBackground(pattern: true)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -76,6 +86,7 @@ struct CaptureView: View {
                     } label: {
                         Label("ตั้งค่า", systemImage: "gearshape")
                     }
+                    .tint(Theme.ink)
                 }
             }
             .navigationDestination(item: $scanInput) { input in
@@ -90,6 +101,7 @@ struct CaptureView: View {
             }
             .sheet(isPresented: $showSettings, onDismiss: refreshCanAnalyze) {
                 SettingsView()
+                    .tint(Theme.accent)
             }
             .alert("เปิดรูปนี้ไม่ได้", isPresented: $loadFailed) {
                 Button("ตกลง", role: .cancel) {}
@@ -126,4 +138,5 @@ struct ScanInput: Identifiable, Hashable {
 
 #Preview {
     CaptureView()
+        .tint(Theme.accent)
 }

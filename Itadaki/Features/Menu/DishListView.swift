@@ -19,17 +19,22 @@ struct DishListView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     if !result.notes.isEmpty {
-                        Label(result.notes, systemImage: "info.circle")
+                        Label(result.notes, systemImage: "info.circle.fill")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
-                            .padding(.bottom, 4)
+                            .foregroundStyle(Theme.ink.opacity(0.75))
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                Theme.accent.opacity(0.08),
+                                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            )
+                            .padding(.bottom, 6)
                     }
 
                     ForEach(Array(sections.enumerated()), id: \.offset) { index, section in
                         SectionHeader(section: section, fallback: "\(section.items.count) รายการ")
-                            .padding(.top, index == 0 ? 0 : 14)
-                            .padding(.horizontal, 4)
+                            .padding(.top, index == 0 ? 2 : 18)
+                            .padding(.bottom, 2)
                             .id(index)
 
                         ForEach(section.items) { item in
@@ -41,7 +46,7 @@ struct DishListView: View {
                                 onAdd: { order.add(item.dish) },
                                 onRemove: { order.remove(item.dish) }
                             )
-                            .contentShape(RoundedRectangle(cornerRadius: 20))
+                            .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
                             .onTapGesture { selected = item }
                             .accessibilityAddTraits(.isButton)
                         }
@@ -60,7 +65,7 @@ struct DishListView: View {
                 .frame(maxWidth: 700)
                 .frame(maxWidth: .infinity)
             }
-            .background(Color(.systemGroupedBackground))
+            .paperBackground()
             .safeAreaInset(edge: .top, spacing: 0) {
                 if chipTitles.count > 1 {
                     SectionChips(titles: chipTitles) { index in
@@ -113,15 +118,24 @@ private struct SectionHeader: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Theme.accent)
+                    .frame(width: 4, height: 20)
+                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
                 Text(section.titleTH.isEmpty ? section.titleJA : section.titleTH)
-                    .font(.title3.bold())
+                    .font(.title2.bold())
+                    .foregroundStyle(Theme.ink)
                 if !section.titleTH.isEmpty && !section.titleJA.isEmpty {
                     Text(section.titleJA)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(Theme.mincho(17, relativeTo: .subheadline))
+                        .foregroundStyle(Theme.accent)
                         .environment(\.locale, Locale(identifier: "ja"))
                 }
+                Spacer(minLength: 0)
+                Text("\(section.items.count)")
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(.tertiary)
             }
         }
     }
@@ -138,16 +152,18 @@ private struct SectionChips: View {
                 ForEach(Array(titles.enumerated()), id: \.offset) { index, title in
                     Button(title) { onSelect(index) }
                         .font(.subheadline.weight(.medium))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Color(.secondarySystemGroupedBackground), in: Capsule())
-                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 15)
+                        .padding(.vertical, 8)
+                        .background(Theme.card, in: Capsule())
+                        .overlay { Capsule().strokeBorder(Theme.hairline, lineWidth: 1) }
+                        .foregroundStyle(Theme.ink)
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
         }
-        .background(.bar)
+        .background(Theme.paper.opacity(0.94))
+        .overlay(alignment: .bottom) { Theme.hairline.frame(height: 1) }
     }
 }
 
@@ -171,10 +187,10 @@ private struct OrderBar: View {
                     .font(.headline.monospacedDigit())
             }
             .padding(.horizontal, 18)
-            .padding(.vertical, 14)
+            .padding(.vertical, 16)
             .foregroundStyle(.white)
-            .background(.tint, in: Capsule())
-            .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+            .background(Theme.accent, in: Capsule())
+            .shadow(color: Theme.accent.opacity(0.4), radius: 14, y: 6)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -193,14 +209,28 @@ private struct OrderBar: View {
 extension MenuResult {
     /// Fixture data for previews: a blank page, so no dish has a cropped photo.
     static var preview: MenuResult {
-        let page = UIGraphicsImageRenderer(size: CGSize(width: 600, height: 800)).image { context in
-            UIColor.systemGray5.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 600, height: 800))
-        }
         let analysis = (try? MockMenuAnalyzer.fixturePage()) ?? PageAnalysis(dishes: [])
+        let size = CGSize(width: 900, height: 1200)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let page = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor(red: 0.95, green: 0.92, blue: 0.86, alpha: 1).setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            let colors: [UIColor] = [.systemOrange, .systemTeal, .systemBrown]
+            for (index, dish) in analysis.dishes.enumerated() {
+                guard let box = dish.photoBBox else { continue }
+                colors[index % colors.count].setFill()
+                context.fill(
+                    CGRect(
+                        x: box.x * size.width, y: box.y * size.height,
+                        width: box.width * size.width, height: box.height * size.height))
+            }
+        }
         return MenuResult(
             pageImage: page,
-            items: analysis.dishes.map { DishItem(dish: $0, photo: nil) },
+            items: analysis.dishes.map { dish in
+                DishItem(dish: dish, photo: dish.photoBBox.flatMap { ImageCropper.crop(page, to: $0) })
+            },
             notes: analysis.notesTH)
     }
 }

@@ -5,7 +5,7 @@ struct ItadakiApp: App {
     var body: some Scene {
         WindowGroup {
             CaptureView()
-                .tint(AppSettings.accent)
+                .tint(Theme.accent)
         }
     }
 }

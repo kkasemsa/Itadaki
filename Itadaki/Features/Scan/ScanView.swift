@@ -36,8 +36,11 @@ struct ScanView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .paperBackground()
         .navigationTitle("เมนู")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Theme.paper, for: .navigationBar)
         .task { await model.start() }
     }
 
@@ -53,17 +56,26 @@ struct ScanView: View {
     }
 
     private var analyzing: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 22) {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
-                .frame(maxHeight: 320)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .opacity(0.6)
-            ProgressView()
-                .controlSize(.large)
+                .overlay { ScanBeam() }
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(Theme.hairline, lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+                .frame(maxHeight: 380)
+            Text("読み取り中")
+                .font(Theme.mincho(15, relativeTo: .footnote))
+                .foregroundStyle(Theme.accent)
+                .environment(\.locale, Locale(identifier: "ja"))
             Text(model.isSecondAttempt ? "อ่านยาก กำลังลองอีกครั้งอย่างละเอียด…" : "กำลังอ่านเมนู…")
-                .font(.headline)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.ink)
+                .padding(.top, -12)
             Text(
                 model.totalParts > 1
                     ? "อ่านแล้ว \(model.completedParts) จาก \(model.totalParts) ส่วน"
@@ -90,6 +102,29 @@ struct ScanView: View {
     }
 }
 
+/// A band of light sweeping down the photo while it is being read.
+struct ScanBeam: View {
+    @State private var atBottom = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            LinearGradient(
+                colors: [.clear, Theme.accent.opacity(0.5), .white.opacity(0.7), .clear],
+                startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 90)
+            .offset(y: atBottom ? proxy.size.height - 30 : -60)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 1.7).repeatForever(autoreverses: true)) {
+                    atBottom = true
+                }
+            }
+        }
+        .background(Color.black.opacity(0.12))
+        .allowsHitTesting(false)
+    }
+}
+
 /// Shown when the page was read but no dish could be made out.
 struct UnreadableView: View {
     let image: UIImage
@@ -109,11 +144,18 @@ struct UnreadableView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(maxHeight: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .saturation(0.4)
+                    .shadow(color: .black.opacity(0.1), radius: 12, y: 6)
 
                 VStack(spacing: 6) {
+                    Text("読めません")
+                        .font(Theme.mincho(15, relativeTo: .footnote))
+                        .foregroundStyle(Theme.accent)
+                        .environment(\.locale, Locale(identifier: "ja"))
                     Text("อ่านเมนูนี้ไม่ออก")
                         .font(.title2.bold())
+                        .foregroundStyle(Theme.ink)
                     Text("แอปไม่เดารายการที่อ่านไม่ชัด เพื่อไม่ให้สั่งผิด")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -122,23 +164,22 @@ struct UnreadableView: View {
 
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(tips, id: \.1) { icon, text in
-                        Label(text, systemImage: icon)
-                            .font(.callout)
+                        Label {
+                            Text(text).foregroundStyle(Theme.ink)
+                        } icon: {
+                            Image(systemName: icon).foregroundStyle(Theme.accent)
+                        }
+                        .font(.callout)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                .padding(18)
+                .paperCard()
 
                 Button(action: onRetake) {
                     Label("ถ่ายใหม่", systemImage: "camera.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
                 }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
-                .controlSize(.large)
+                .buttonStyle(PrimaryButtonStyle())
 
                 if !notes.isEmpty {
                     DisclosureGroup("สิ่งที่โมเดลเห็นในรูป") {
@@ -155,7 +196,7 @@ struct UnreadableView: View {
             .frame(maxWidth: 520)
             .frame(maxWidth: .infinity)
         }
-        .background(Color(.systemGroupedBackground))
+        .paperBackground()
     }
 }
 

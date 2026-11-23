@@ -11,9 +11,6 @@ enum AppSettings {
     static let stripsKey = "pageStrips"
     static let defaultStrips = 2
 
-    /// Japanese vermilion; the app's accent.
-    static let accent = Color(red: 0.84, green: 0.25, blue: 0.2)
-
     static var hasAPIKey: Bool {
         !(KeychainStore.string(for: KeychainStore.apiKeyAccount) ?? "").isEmpty
     }

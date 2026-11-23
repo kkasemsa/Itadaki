@@ -14,16 +14,18 @@ struct DishCard: View {
         HStack(alignment: .top, spacing: 14) {
             if showsThumbnail {
                 DishThumbnail(photo: item.photo)
-                    .frame(width: 92, height: 92)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .frame(width: 96, height: 96)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(item.dish.nameTH)
                     .font(.headline)
+                    .foregroundStyle(Theme.ink)
                 // Large enough to point at when ordering from staff.
                 Text(item.dish.nameJA)
-                    .font(.title2.weight(.semibold))
+                    .font(Theme.mincho(24))
+                    .foregroundStyle(Theme.ink)
                     .environment(\.locale, Locale(identifier: "ja"))
                 if !item.dish.reading.isEmpty {
                     Text(item.dish.reading)
@@ -34,7 +36,7 @@ struct DishCard: View {
                     TagChips(tags: item.dish.tags)
                         .padding(.top, 2)
                 }
-                HStack(alignment: .lastTextBaseline) {
+                HStack(alignment: .center) {
                     PriceLabel(priceYen: item.dish.priceYen, bahtPerYen: bahtPerYen)
                     Spacer(minLength: 8)
                     QuantityControl(quantity: quantity, onAdd: onAdd, onRemove: onRemove)
@@ -42,40 +44,49 @@ struct DishCard: View {
                 .padding(.top, 4)
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20))
+        .paperCard()
         .overlay {
             if quantity > 0 {
-                RoundedRectangle(cornerRadius: 20).strokeBorder(.tint, lineWidth: 1.5)
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .strokeBorder(Theme.accent, lineWidth: 2)
             }
         }
     }
 }
 
-/// "+" when nothing is picked; "− n +" once the dish is in the order.
+/// A round "+" when nothing is picked; "− n +" once the dish is in the order.
 struct QuantityControl: View {
     let quantity: Int
     let onAdd: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             if quantity > 0 {
                 Button(action: onRemove) {
-                    Image(systemName: "minus.circle")
+                    Image(systemName: "minus")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 34, height: 34)
+                        .background(Theme.accent.opacity(0.12), in: Circle())
                 }
                 .accessibilityLabel("ลดจำนวน")
                 Text("\(quantity)")
-                    .font(.headline.monospacedDigit())
-                    .frame(minWidth: 18)
+                    .font(.title3.weight(.bold).monospacedDigit())
+                    .foregroundStyle(Theme.ink)
+                    .frame(minWidth: 16)
             }
             Button(action: onAdd) {
-                Image(systemName: quantity > 0 ? "plus.circle.fill" : "plus.circle")
+                Image(systemName: "plus")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(quantity > 0 ? .white : Theme.accent)
+                    .frame(width: 34, height: 34)
+                    .background(quantity > 0 ? Theme.accent : Theme.accent.opacity(0.12), in: Circle())
             }
             .accessibilityLabel("เพิ่มในรายการที่จะสั่ง")
         }
-        .font(.title2)
         .buttonStyle(.borderless)
         .sensoryFeedback(.selection, trigger: quantity)
     }
@@ -93,7 +104,7 @@ struct DishThumbnail: View {
             .clipped()
         } else {
             ZStack {
-                Color(.tertiarySystemFill)
+                Theme.paper
                 Image(systemName: "fork.knife")
                     .font(.title2)
                     .foregroundStyle(.tertiary)
@@ -108,15 +119,20 @@ struct PriceLabel: View {
 
     var body: some View {
         if let priceYen {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 7) {
                 Text(PriceFormatter.yen(priceYen))
-                    .font(.title3.weight(.bold).monospacedDigit())
+                    .font(.system(.title3, design: .serif).weight(.bold).monospacedDigit())
+                    .foregroundStyle(Theme.ink)
                 if let baht = PriceFormatter.baht(yen: priceYen, bahtPerYen: bahtPerYen) {
                     Text(baht)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }
+        } else {
+            Text("ไม่ระบุราคา")
+                .font(.footnote)
+                .foregroundStyle(.tertiary)
         }
     }
 }
@@ -125,14 +141,17 @@ struct TagChips: View {
     let tags: [DishTag]
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             ForEach(tags, id: \.self) { tag in
-                Text(tag.labelTH)
-                    .font(.caption2.weight(.medium))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(tag.color.opacity(0.15), in: Capsule())
-                    .foregroundStyle(tag.color)
+                HStack(spacing: 4) {
+                    Circle().fill(tag.color).frame(width: 6, height: 6)
+                    Text(tag.labelTH)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.primary.opacity(0.05), in: Capsule())
             }
         }
     }
