@@ -12,6 +12,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Group {
                 Section {
                     SecureField("sk-ant-…", text: $apiKey)
                         .textInputAutocapitalization(.never)
@@ -61,7 +62,11 @@ struct SettingsView: View {
                 } footer: {
                     Text("แสดงเมนูตัวอย่างโดยไม่เรียก API ใช้ทดสอบหน้าจอ")
                 }
+                }
+                .listRowBackground(Theme.card)
             }
+            .scrollContentBackground(.hidden)
+            .paperBackground()
             .navigationTitle("ตั้งค่า")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
