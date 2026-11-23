@@ -134,7 +134,7 @@ struct UnreadableView: View {
     private let tips = [
         ("viewfinder", "ถ่ายทีละหน้า ให้เมนูเต็มกรอบ"),
         ("sun.max", "เลี่ยงแสงสะท้อนจากแผ่นพลาสติกหรือกระจก"),
-        ("camera.macro", "ถ้าตัวหนังสือเล็กหรือเป็นลายมือ ถ่ายใกล้ขึ้นทีละส่วน"),
+        ("plus.magnifyingglass", "ถ้าตัวหนังสือเล็กหรือเป็นลายมือ ถ่ายใกล้ขึ้นทีละส่วน"),
     ]
 
     var body: some View {

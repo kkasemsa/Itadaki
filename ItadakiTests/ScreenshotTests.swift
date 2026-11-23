@@ -9,11 +9,15 @@ import XCTest
 final class ScreenshotTests: XCTestCase {
     private let directory = URL(fileURLWithPath: "/tmp/itadaki-snapshots", isDirectory: true)
 
+    /// One fixture for the whole run: `MenuResult.preview` makes new dish ids each call.
+    private let preview = MenuResult.preview
+
     private struct ListHost: View {
+        let result: MenuResult
         @State var order: Order
         var body: some View {
             NavigationStack {
-                DishListView(result: .preview, order: $order)
+                DishListView(result: result, order: $order)
                     .navigationTitle("เมนู")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbarBackground(Theme.paper, for: .navigationBar)
@@ -23,7 +27,7 @@ final class ScreenshotTests: XCTestCase {
 
     private var sampleOrder: Order {
         var order = Order()
-        let dishes = MenuResult.preview.items.map(\.dish)
+        let dishes = preview.items.map(\.dish)
         order.add(dishes[0])
         order.add(dishes[3])
         order.add(dishes[3])
@@ -32,13 +36,12 @@ final class ScreenshotTests: XCTestCase {
 
     func testRenderScreens() throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let preview = MenuResult.preview
         let dishes = preview.items.map(\.dish)
 
         for style in [UIUserInterfaceStyle.light, .dark] {
             let suffix = style == .dark ? "-dark" : ""
             try render("1-home" + suffix, style: style, CaptureView())
-            try render("2-menu" + suffix, style: style, ListHost(order: sampleOrder))
+            try render("2-menu" + suffix, style: style, ListHost(result: preview, order: sampleOrder))
             try render(
                 "3-detail" + suffix, style: style,
                 DishDetailView(item: preview.items[0], pageImage: preview.pageImage, bahtPerYen: 0.225))

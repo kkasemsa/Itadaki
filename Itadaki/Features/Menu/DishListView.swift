@@ -133,9 +133,6 @@ private struct SectionHeader: View {
                         .environment(\.locale, Locale(identifier: "ja"))
                 }
                 Spacer(minLength: 0)
-                Text("\(section.items.count)")
-                    .font(.footnote.monospacedDigit())
-                    .foregroundStyle(.tertiary)
             }
         }
     }
