@@ -26,6 +26,7 @@ struct MenuPageView: View {
                     .frame(width: min(max(380, proxy.size.width * 0.42), 520))
                 }
             }
+            .paperBackground()
         } else {
             DishListView(result: result, order: $order, progress: progress, allDishes: allDishes)
         }
