@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// Analyzes one or more menu photos and shows, page by page, progress, an error
