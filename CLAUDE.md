@@ -4,7 +4,7 @@ The product spec and working rules are in @SPEC.md. Read it before changing anyt
 
 ## Status
 - Phase 1 (MVP) is implemented, plus menu sections, page strips, the order summary and the card UI.
-- Multi-page capture and SwiftData history are done. Not started: iPad split view (Phase 2); offline analyzer (Phase 3).
+- Phase 2 is done: multi-page capture, SwiftData history, iPad split view. Not started: offline analyzer (Phase 3), polish (Phase 4).
 - History stores dishes as JSON inside `SavedPage` rather than as SwiftData models, so `Dish` stays a
   plain struct that the Linux tests can build. Changing `Dish`'s JSON keys breaks saved menus.
 

@@ -126,7 +126,7 @@ struct SavedMenuView: View {
                         PageStrip(pages: pages, selection: $selectedPage)
                     }
                     if pages.indices.contains(selectedPage), let result = pages[selectedPage].result {
-                        DishListView(
+                        MenuPageView(
                             result: result, order: $order,
                             allDishes: pages.flatMap { $0.result?.items.map(\.dish) ?? [] }
                         )

@@ -10,6 +10,9 @@ struct DishListView: View {
     /// Dishes from every page of the scan, so the order can span pages. Defaults to
     /// this page's dishes.
     var allDishes: [Dish]?
+    /// Set in the split view: tapping a card selects the dish (so the page beside the
+    /// list can show where it is) instead of opening its details.
+    var selection: Binding<UUID?>?
 
     @AppStorage(AppSettings.bahtPer100YenKey) private var bahtPer100Yen = 0.0
     @State private var selected: DishItem?
@@ -46,12 +49,21 @@ struct DishListView: View {
                                 bahtPerYen: bahtPerYen,
                                 showsThumbnail: hasPhotos,
                                 quantity: order.quantity(of: item.dish),
+                                isHighlighted: selection?.wrappedValue == item.id,
+                                onInfo: selection == nil ? nil : { selected = item },
                                 onAdd: { order.add(item.dish) },
                                 onRemove: { order.remove(item.dish) }
                             )
                             .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
-                            .onTapGesture { selected = item }
+                            .onTapGesture {
+                                if let selection {
+                                    selection.wrappedValue = item.id
+                                } else {
+                                    selected = item
+                                }
+                            }
                             .accessibilityAddTraits(.isButton)
+                            .id(item.id)
                         }
                     }
 
@@ -83,6 +95,11 @@ struct DishListView: View {
                 }
             }
             .animation(.snappy, value: order.isEmpty)
+            .onChange(of: selection?.wrappedValue) { _, id in
+                // A box was tapped on the page: bring its card into view.
+                guard let id else { return }
+                withAnimation { proxy.scrollTo(id, anchor: .center) }
+            }
         }
         .sheet(item: $selected) { item in
             DishDetailView(item: item, pageImage: result.pageImage, bahtPerYen: bahtPerYen)

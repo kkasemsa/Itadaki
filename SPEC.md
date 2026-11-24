@@ -75,7 +75,7 @@ Models/         Dish (plain Codable struct); SavedMenu, SavedPage (SwiftData)
 - **Unreadable page:** short explanation, photo tips and a retake button.
 - **Dish row:** cropped photo (if any) on the left; Thai name (large), Japanese name (large enough to point at for staff), reading (small), price ¥ (and ≈ ฿ if rate set, entered as baht per 100 yen), tag chips. The photo column is hidden when the page has no dish photos.
 - **Tap a dish:** detail sheet with the Japanese name very large (to show staff), larger photo and description. On the original page, highlight its `text_bbox`.
-- **iPad:** `NavigationSplitView` with the original page (zoomable, boxes overlaid) on one side and the dish list on the other; selecting either side highlights the other.
+- **iPad (and any regular-width screen):** the original page (zoomable, every dish's box overlaid) beside the dish list. Tapping a box highlights and scrolls to its card; tapping a card highlights its box and zooms the page to it. In this layout a card's info button opens the detail sheet. Built as a side-by-side layout inside the existing navigation stack rather than a `NavigationSplitView`.
 - Dishes without photos still appear, with a neutral placeholder.
 - Show a clear loading state per page; pages are processed in parallel (max 3).
 

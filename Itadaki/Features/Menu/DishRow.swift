@@ -7,6 +7,11 @@ struct DishCard: View {
     /// False for menus with no dish photos at all, where placeholders would only waste space.
     var showsThumbnail = true
     let quantity: Int
+    /// True for the dish currently picked out in the split view.
+    var isHighlighted = false
+    /// When set, the card shows a button that opens the dish's details. Used in the
+    /// split view, where tapping the card selects it instead.
+    var onInfo: (() -> Void)?
     let onAdd: () -> Void
     let onRemove: () -> Void
 
@@ -39,6 +44,17 @@ struct DishCard: View {
                 HStack(alignment: .center) {
                     PriceLabel(priceYen: item.dish.priceYen, bahtPerYen: bahtPerYen)
                     Spacer(minLength: 8)
+                    if let onInfo {
+                        Button(action: onInfo) {
+                            Image(systemName: "info")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(Theme.ink)
+                                .frame(width: 34, height: 34)
+                                .background(Color.primary.opacity(0.07), in: Circle())
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("ดูรายละเอียด")
+                    }
                     QuantityControl(quantity: quantity, onAdd: onAdd, onRemove: onRemove)
                 }
                 .padding(.top, 4)
@@ -48,9 +64,9 @@ struct DishCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .paperCard()
         .overlay {
-            if quantity > 0 {
+            if quantity > 0 || isHighlighted {
                 RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .strokeBorder(Theme.accent, lineWidth: 2)
+                    .strokeBorder(Theme.accent, lineWidth: isHighlighted ? 3 : 2)
             }
         }
     }

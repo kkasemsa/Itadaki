@@ -73,6 +73,9 @@ final class ScreenshotTests: XCTestCase {
                     Spacer()
                 }
                 .paperBackground())
+            try render(
+                "10-ipad-split" + suffix, style: style, size: CGSize(width: 1180, height: 820),
+                SplitHost(result: preview, order: sampleOrder))
             try render("9-history" + suffix, style: style, NavigationStack { HistoryView() })
             try render("6-settings" + suffix, style: style, SettingsView())
             let tiny = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 80)).image { _ in }
@@ -87,8 +90,24 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    private func render<V: View>(_ name: String, style: UIUserInterfaceStyle, _ view: V) throws {
-        let frame = CGRect(x: 0, y: 0, width: 393, height: 852)
+    private struct SplitHost: View {
+        let result: MenuResult
+        @State var order: Order
+        var body: some View {
+            NavigationStack {
+                MenuPageView(result: result, order: $order)
+                    .navigationTitle("เมนู")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbarBackground(Theme.paper, for: .navigationBar)
+            }
+            .environment(\.horizontalSizeClass, .regular)
+        }
+    }
+
+    private func render<V: View>(
+        _ name: String, style: UIUserInterfaceStyle, size: CGSize = CGSize(width: 393, height: 852), _ view: V
+    ) throws {
+        let frame = CGRect(origin: .zero, size: size)
         let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
         let window = scene.map(UIWindow.init(windowScene:)) ?? UIWindow(frame: frame)
         window.frame = frame

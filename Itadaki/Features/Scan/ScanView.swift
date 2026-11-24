@@ -74,7 +74,7 @@ struct ScanView: View {
     @ViewBuilder
     private func pageContent(_ page: PageState) -> some View {
         if let result = page.result, !result.items.isEmpty {
-            DishListView(
+            MenuPageView(
                 result: result, order: $order, progress: progressText(page), allDishes: model.allDishes)
         } else {
             switch page.status {
