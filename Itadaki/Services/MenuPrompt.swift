@@ -27,8 +27,8 @@ enum MenuPrompt {
     knowledge of Japanese food. When the name is a house special whose contents you cannot tell, \
     say so plainly instead of guessing. If an item comes in several sizes or prices, list them here.
     - options: when one item lists several choices at the same price — fillings, flavours, \
-    toppings, cuts, hot or cold — put each choice here with its printed name (name_ja) and a Thai \
-    translation (name_th), and keep name_ja above to the item's own name (おにぎり, not the whole \
+    toppings, cuts, hot or cold — put each choice here with its printed name (name_ja), how to say it \
+    in hiragana (reading) and a Thai translation (name_th), and keep name_ja above to the item's own name (おにぎり, not the whole \
     list of fillings). The user orders by pointing at one choice, so every choice printed must \
     appear and be translated. Use an empty list when the item has no choices. Choices with their \
     own prices are separate items, not options.
@@ -89,9 +89,10 @@ enum MenuPrompt {
                     "items": [
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["name_ja", "name_th"],
+                        "required": ["name_ja", "reading", "name_th"],
                         "properties": [
                             "name_ja": ["type": "string"],
+                            "reading": ["type": "string"],
                             "name_th": ["type": "string"],
                         ],
                     ] as [String: Any],

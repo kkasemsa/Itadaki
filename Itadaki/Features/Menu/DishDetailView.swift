@@ -43,9 +43,7 @@ struct DishDetailView: View {
                             .minimumScaleFactor(0.5)
                             .environment(\.locale, Locale(identifier: "ja"))
                         if !item.dish.reading.isEmpty {
-                            Text(item.dish.reading)
-                                .font(.title3)
-                                .foregroundStyle(.secondary)
+                            ReadingLabel(reading: item.dish.reading, font: .title3)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

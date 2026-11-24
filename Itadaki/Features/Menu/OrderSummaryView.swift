@@ -1,11 +1,15 @@
 import SwiftUI
 
-/// The picked dishes in large Japanese, made to be shown to restaurant staff.
+/// The picked dishes in large Japanese, made to be shown to restaurant staff. Each
+/// line can be adjusted or removed here.
 struct OrderSummaryView: View {
-    let summary: OrderSummary
+    /// Every dish of the scan, in menu order.
+    let dishes: [Dish]
     let bahtPerYen: Double
     @Binding var order: Order
     @Environment(\.dismiss) private var dismiss
+
+    private var summary: OrderSummary { order.summary(for: dishes) }
 
     var body: some View {
         NavigationStack {
@@ -23,26 +27,7 @@ struct OrderSummaryView: View {
 
                     VStack(spacing: 0) {
                         ForEach(summary.lines) { line in
-                            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(line.dish.nameJA)
-                                        .font(Theme.mincho(32, relativeTo: .largeTitle))
-                                        .foregroundStyle(Theme.ink)
-                                        .minimumScaleFactor(0.6)
-                                        .environment(\.locale, Locale(identifier: "ja"))
-                                    Text(line.dish.nameTH)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer(minLength: 8)
-                                Text("\(line.quantity)")
-                                    .font(.system(size: 26, weight: .bold, design: .serif).monospacedDigit())
-                                    .foregroundStyle(.white)
-                                    .frame(width: 50, height: 50)
-                                    .background(Theme.accent, in: Circle())
-                                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 14 }
-                            }
-                            .padding(.vertical, 16)
+                            lineRow(line)
                             if line.id != summary.lines.last?.id {
                                 Line()
                                     .stroke(Color.primary.opacity(0.18), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
@@ -94,7 +79,55 @@ struct OrderSummaryView: View {
                     Button("ปิด") { dismiss() }
                 }
             }
+            .onChange(of: order.isEmpty) { _, isEmpty in
+                if isEmpty { dismiss() }
+            }
         }
+    }
+
+    private func lineRow(_ line: OrderSummary.Line) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(line.dish.nameJA)
+                        .font(Theme.mincho(32, relativeTo: .largeTitle))
+                        .foregroundStyle(Theme.ink)
+                        .minimumScaleFactor(0.6)
+                        .environment(\.locale, Locale(identifier: "ja"))
+                    if let option = line.option {
+                        Text(option.nameJA)
+                            .font(Theme.mincho(28, relativeTo: .title))
+                            .foregroundStyle(Theme.accent)
+                            .environment(\.locale, Locale(identifier: "ja"))
+                    }
+                }
+                Spacer(minLength: 8)
+                Text("\(line.quantity)")
+                    .font(.system(size: 26, weight: .bold, design: .serif).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .frame(width: 50, height: 50)
+                    .background(Theme.accent, in: Circle())
+            }
+
+            // For the user, not the staff: what the line is, and controls to change it.
+            HStack(alignment: .center, spacing: 8) {
+                Text(thaiLabel(line))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                QuantityControl(
+                    quantity: line.quantity,
+                    onAdd: { order.add(line.dish, option: line.optionIndex) },
+                    onRemove: { order.remove(line.dish, option: line.optionIndex) },
+                    showsCount: false)
+            }
+        }
+        .padding(.vertical, 16)
+    }
+
+    private func thaiLabel(_ line: OrderSummary.Line) -> String {
+        guard let option = line.option, !option.nameTH.isEmpty else { return line.dish.nameTH }
+        return "\(line.dish.nameTH) · \(option.nameTH)"
     }
 
     /// A horizontal rule, drawn as a shape so it can be dashed like an order slip.
@@ -122,6 +155,5 @@ struct OrderSummaryView: View {
         for item in MenuResult.preview.items.prefix(3) { order.add(item.dish) }
         return order
     }()
-    OrderSummaryView(
-        summary: order.summary(for: MenuResult.preview.items.map(\.dish)), bahtPerYen: 0.225, order: $order)
+    OrderSummaryView(dishes: MenuResult.preview.items.map(\.dish), bahtPerYen: 0.225, order: $order)
 }

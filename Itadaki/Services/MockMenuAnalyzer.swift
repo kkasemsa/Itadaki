@@ -66,7 +66,7 @@ struct MockMenuAnalyzer: MenuAnalyzer {
           "reading": "なまびーる",
           "name_th": "เบียร์สด",
           "description_th": "เบียร์สดแก้วกลาง เลือกยี่ห้อได้",
-          "options": [{"name_ja": "アサヒ", "name_th": "อาซาฮี"}, {"name_ja": "キリン", "name_th": "คิริน"}, {"name_ja": "サッポロ", "name_th": "ซัปโปโร"}],
+          "options": [{"name_ja": "アサヒ", "reading": "あさひ", "name_th": "อาซาฮี"}, {"name_ja": "キリン", "reading": "きりん", "name_th": "คิริน"}, {"name_ja": "サッポロ", "reading": "さっぽろ", "name_th": "ซัปโปโร"}],
           "price_yen": 550,
           "tags": ["alcohol"],
           "text_bbox": [0.08, 0.74, 0.40, 0.06],

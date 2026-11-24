@@ -30,8 +30,9 @@ final class ScreenshotTests: XCTestCase {
         var order = Order()
         let dishes = preview.items.map(\.dish)
         order.add(dishes[0])
-        order.add(dishes[3])
-        order.add(dishes[3])
+        order.add(dishes[3], option: 1)
+        order.add(dishes[3], option: 1)
+        order.add(dishes[3], option: 2)
         return order
     }
 
@@ -59,9 +60,7 @@ final class ScreenshotTests: XCTestCase {
                 DishDetailView(item: preview.items[0], pageImage: preview.pageImage, bahtPerYen: 0.225))
             try render(
                 "4-order" + suffix, style: style,
-                OrderSummaryView(
-                    summary: sampleOrder.summary(for: dishes), bahtPerYen: 0.225,
-                    order: .constant(sampleOrder)))
+                OrderSummaryView(dishes: dishes, bahtPerYen: 0.225, order: .constant(sampleOrder)))
             var pages = (0..<3).map { PageState(id: $0, image: preview.pageImage, result: preview) }
             pages[0].status = .done
             pages[1].status = .reading
@@ -76,6 +75,16 @@ final class ScreenshotTests: XCTestCase {
             try render(
                 "10-ipad-split" + suffix, style: style, size: CGSize(width: 1180, height: 820),
                 SplitHost(result: preview, order: sampleOrder))
+            try render(
+                "11-options" + suffix, style: style,
+                ScrollView {
+                    DishCard(
+                        item: preview.items[3], bahtPerYen: 0.225, showsThumbnail: false, order: sampleOrder,
+                        onAdd: { _ in }, onRemove: { _ in }
+                    )
+                    .padding(16)
+                }
+                .paperBackground())
             try render("9-history" + suffix, style: style, NavigationStack { HistoryView() })
             try render("6-settings" + suffix, style: style, SettingsView())
             let tiny = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 80)).image { _ in }

@@ -47,11 +47,27 @@ enum DishTag: String, CaseIterable, Sendable {
 /// One choice within a dish, such as a filling, flavour or size.
 struct DishOption: Equatable, Hashable, Sendable, Codable {
     var nameJA: String
+    /// How to say it, in kana. Empty for menus read before choices had readings.
+    var reading: String
     var nameTH: String
+
+    init(nameJA: String, reading: String = "", nameTH: String) {
+        self.nameJA = nameJA
+        self.reading = reading
+        self.nameTH = nameTH
+    }
 
     private enum CodingKeys: String, CodingKey {
         case nameJA = "name_ja"
+        case reading
         case nameTH = "name_th"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        nameJA = (try? c.decodeIfPresent(String.self, forKey: .nameJA)) ?? ""
+        reading = (try? c.decodeIfPresent(String.self, forKey: .reading)) ?? ""
+        nameTH = (try? c.decodeIfPresent(String.self, forKey: .nameTH)) ?? ""
     }
 }
 

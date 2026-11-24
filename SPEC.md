@@ -69,7 +69,9 @@ Models/         Dish (plain Codable struct); SavedMenu, SavedPage (SwiftData)
 
 ## UI
 - **Dish list:** cards grouped under the section headings printed on the menu (Thai + Japanese), in menu order, with a chip bar to jump between headings. Dishes appear as each strip finishes.
-- **Order:** each card has a quantity control; a bottom bar opens the order summary — picked dishes in very large Japanese with quantities and the total in ¥ and ≈ ฿ — to show staff.
+- **Readings:** every kana reading is shown with romaji beside it (converted on device, e.g. ごとうふ · gotoufu).
+- **Ordering choices:** a dish with `options` is ordered per choice; each choice has its own quantity control and its own line in the order summary.
+- **Order:** each card has a quantity control; lines in the order summary can be adjusted or removed one at a time; a bottom bar opens the order summary — picked dishes in very large Japanese with quantities and the total in ¥ and ≈ ฿ — to show staff.
 - **History:** every scan that finds dishes is saved automatically (page photos, dishes, notes) and listed newest first; a saved menu opens offline with the same list, detail and order screens. Menus can be renamed and deleted.
 - **Several pages:** pick up to 8 photos at once, or photograph pages one after another into a tray before reading. Results are shown per page, with a thumbnail strip to switch pages; the order spans all pages.
 - **Zoom:** in the detail sheet, tapping the dish photo or the menu page opens it full screen with pinch-to-zoom; the page opens zoomed in on the dish's box.

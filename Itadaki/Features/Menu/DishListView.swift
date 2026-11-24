@@ -48,11 +48,11 @@ struct DishListView: View {
                                 item: item,
                                 bahtPerYen: bahtPerYen,
                                 showsThumbnail: hasPhotos,
-                                quantity: order.quantity(of: item.dish),
+                                order: order,
                                 isHighlighted: selection?.wrappedValue == item.id,
                                 onInfo: selection == nil ? nil : { selected = item },
-                                onAdd: { order.add(item.dish) },
-                                onRemove: { order.remove(item.dish) }
+                                onAdd: { order.add(item.dish, option: $0) },
+                                onRemove: { order.remove(item.dish, option: $0) }
                             )
                             .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
                             .onTapGesture {
@@ -105,7 +105,8 @@ struct DishListView: View {
             DishDetailView(item: item, pageImage: result.pageImage, bahtPerYen: bahtPerYen)
         }
         .sheet(isPresented: $showOrder) {
-            OrderSummaryView(summary: summary, bahtPerYen: bahtPerYen, order: $order)
+            OrderSummaryView(
+                dishes: allDishes ?? result.items.map(\.dish), bahtPerYen: bahtPerYen, order: $order)
         }
     }
 
@@ -192,7 +193,7 @@ private struct OrderBar: View {
     var body: some View {
         Button(action: action) {
             HStack {
-                Text("\(summary.lines.reduce(0) { $0 + $1.quantity })")
+                Text("\(summary.itemCount)")
                     .font(.subheadline.bold().monospacedDigit())
                     .padding(.horizontal, 9)
                     .padding(.vertical, 3)

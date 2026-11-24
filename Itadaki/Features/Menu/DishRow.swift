@@ -6,14 +6,19 @@ struct DishCard: View {
     let bahtPerYen: Double
     /// False for menus with no dish photos at all, where placeholders would only waste space.
     var showsThumbnail = true
-    let quantity: Int
+    /// The order so far, to show this dish's quantities.
+    let order: Order
     /// True for the dish currently picked out in the split view.
     var isHighlighted = false
     /// When set, the card shows a button that opens the dish's details. Used in the
     /// split view, where tapping the card selects it instead.
     var onInfo: (() -> Void)?
-    let onAdd: () -> Void
-    let onRemove: () -> Void
+    /// Add or remove one portion; the argument is the chosen option's index, or nil
+    /// for a dish without choices.
+    let onAdd: (Int?) -> Void
+    let onRemove: (Int?) -> Void
+
+    private var quantity: Int { order.totalQuantity(of: item.dish) }
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
@@ -33,9 +38,7 @@ struct DishCard: View {
                     .foregroundStyle(Theme.ink)
                     .environment(\.locale, Locale(identifier: "ja"))
                 if !item.dish.reading.isEmpty {
-                    Text(item.dish.reading)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    ReadingLabel(reading: item.dish.reading)
                 }
                 if !item.dish.descriptionTH.isEmpty {
                     Text(item.dish.descriptionTH)
@@ -45,8 +48,13 @@ struct DishCard: View {
                         .padding(.top, 2)
                 }
                 if !item.dish.options.isEmpty {
-                    OptionList(options: item.dish.options)
-                        .padding(.top, 4)
+                    OptionList(
+                        options: item.dish.options,
+                        quantity: { order.quantity(of: item.dish, option: $0) },
+                        onAdd: { onAdd($0) },
+                        onRemove: { onRemove($0) }
+                    )
+                    .padding(.top, 4)
                 }
                 if !item.dish.tags.isEmpty {
                     TagChips(tags: item.dish.tags)
@@ -66,7 +74,10 @@ struct DishCard: View {
                         .buttonStyle(.borderless)
                         .accessibilityLabel("ดูรายละเอียด")
                     }
-                    QuantityControl(quantity: quantity, onAdd: onAdd, onRemove: onRemove)
+                    // A dish with choices is ordered per choice, in the list above.
+                    if item.dish.options.isEmpty {
+                        QuantityControl(quantity: quantity, onAdd: { onAdd(nil) }, onRemove: { onRemove(nil) })
+                    }
                 }
                 .padding(.top, 4)
             }
@@ -83,26 +94,57 @@ struct DishCard: View {
     }
 }
 
-/// The choices a dish offers, each as "Japanese — Thai", so one can be pointed at.
+/// A kana reading with its romaji, e.g. "ごとうふ · gotoufu".
+struct ReadingLabel: View {
+    let reading: String
+    var font: Font = .footnote
+
+    var body: some View {
+        let romaji = Romaji.convert(reading)
+        Text(romaji == reading || romaji.isEmpty ? reading : "\(reading) · \(romaji)")
+            .font(font)
+            .foregroundStyle(.secondary)
+    }
+}
+
+/// The choices a dish offers, each with its Japanese name, reading and Thai meaning.
+/// With the quantity closures set, each choice can be added to the order.
 struct OptionList: View {
     let options: [DishOption]
     /// Larger type for the detail sheet.
     var isLarge = false
+    var quantity: ((Int) -> Int)?
+    var onAdd: ((Int) -> Void)?
+    var onRemove: ((Int) -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: isLarge ? 10 : 6) {
-            Text("เลือกได้")
+        VStack(alignment: .leading, spacing: isLarge ? 12 : 8) {
+            Text(onAdd == nil ? "เลือกได้" : "เลือกที่จะสั่ง")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.accent)
-            ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(option.nameJA)
-                        .font(Theme.mincho(isLarge ? 26 : 18, relativeTo: .body))
-                        .foregroundStyle(Theme.ink)
-                        .environment(\.locale, Locale(identifier: "ja"))
-                    Text(option.nameTH)
-                        .font(isLarge ? .body : .subheadline)
-                        .foregroundStyle(.secondary)
+            ForEach(Array(options.enumerated()), id: \.offset) { index, option in
+                HStack(alignment: .center, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(option.nameJA)
+                                .font(Theme.mincho(isLarge ? 26 : 19, relativeTo: .body))
+                                .foregroundStyle(Theme.ink)
+                                .environment(\.locale, Locale(identifier: "ja"))
+                            Text(option.nameTH)
+                                .font(isLarge ? .body : .subheadline)
+                                .foregroundStyle(Theme.ink.opacity(0.8))
+                        }
+                        if !option.reading.isEmpty {
+                            ReadingLabel(reading: option.reading, font: .caption)
+                        }
+                    }
+                    Spacer(minLength: 4)
+                    if let quantity, let onAdd, let onRemove {
+                        QuantityControl(
+                            quantity: quantity(index),
+                            onAdd: { onAdd(index) },
+                            onRemove: { onRemove(index) })
+                    }
                 }
             }
         }
@@ -117,6 +159,8 @@ struct QuantityControl: View {
     let quantity: Int
     let onAdd: () -> Void
     let onRemove: () -> Void
+    /// False where the count is already shown elsewhere and only − and + are wanted.
+    var showsCount = true
 
     var body: some View {
         HStack(spacing: 12) {
@@ -129,10 +173,12 @@ struct QuantityControl: View {
                         .background(Theme.accent.opacity(0.12), in: Circle())
                 }
                 .accessibilityLabel("ลดจำนวน")
-                Text("\(quantity)")
-                    .font(.title3.weight(.bold).monospacedDigit())
-                    .foregroundStyle(Theme.ink)
-                    .frame(minWidth: 16)
+                if showsCount {
+                    Text("\(quantity)")
+                        .font(.title3.weight(.bold).monospacedDigit())
+                        .foregroundStyle(Theme.ink)
+                        .frame(minWidth: 16)
+                }
             }
             Button(action: onAdd) {
                 Image(systemName: "plus")
