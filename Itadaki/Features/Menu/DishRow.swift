@@ -37,6 +37,17 @@ struct DishCard: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+                if !item.dish.descriptionTH.isEmpty {
+                    Text(item.dish.descriptionTH)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.ink.opacity(0.8))
+                        .lineLimit(3)
+                        .padding(.top, 2)
+                }
+                if !item.dish.options.isEmpty {
+                    OptionList(options: item.dish.options)
+                        .padding(.top, 4)
+                }
                 if !item.dish.tags.isEmpty {
                     TagChips(tags: item.dish.tags)
                         .padding(.top, 2)
@@ -69,6 +80,35 @@ struct DishCard: View {
                     .strokeBorder(Theme.accent, lineWidth: isHighlighted ? 3 : 2)
             }
         }
+    }
+}
+
+/// The choices a dish offers, each as "Japanese — Thai", so one can be pointed at.
+struct OptionList: View {
+    let options: [DishOption]
+    /// Larger type for the detail sheet.
+    var isLarge = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: isLarge ? 10 : 6) {
+            Text("เลือกได้")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+            ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(option.nameJA)
+                        .font(Theme.mincho(isLarge ? 26 : 18, relativeTo: .body))
+                        .foregroundStyle(Theme.ink)
+                        .environment(\.locale, Locale(identifier: "ja"))
+                    Text(option.nameTH)
+                        .font(isLarge ? .body : .subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(isLarge ? 16 : 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 

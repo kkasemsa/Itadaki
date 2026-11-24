@@ -26,6 +26,12 @@ enum MenuPrompt {
     it is, the main ingredients, how it is cooked or served. Use what the menu says plus general \
     knowledge of Japanese food. When the name is a house special whose contents you cannot tell, \
     say so plainly instead of guessing. If an item comes in several sizes or prices, list them here.
+    - options: when one item lists several choices at the same price — fillings, flavours, \
+    toppings, cuts, hot or cold — put each choice here with its printed name (name_ja) and a Thai \
+    translation (name_th), and keep name_ja above to the item's own name (おにぎり, not the whole \
+    list of fillings). The user orders by pointing at one choice, so every choice printed must \
+    appear and be translated. Use an empty list when the item has no choices. Choices with their \
+    own prices are separate items, not options.
     - price_yen: the printed price as an integer. With several sizes use the lowest. If both \
     tax-included (税込) and tax-excluded prices are shown, use the tax-included one. Use null \
     when there is no price or it says market price (時価).
@@ -69,7 +75,7 @@ enum MenuPrompt {
             "additionalProperties": false,
             "required": [
                 "section_ja", "section_th", "name_ja", "reading", "name_th", "description_th",
-                "price_yen", "tags", "text_bbox", "photo_bbox",
+                "options", "price_yen", "tags", "text_bbox", "photo_bbox",
             ],
             "properties": [
                 "section_ja": ["type": "string"],
@@ -78,6 +84,18 @@ enum MenuPrompt {
                 "reading": ["type": "string"],
                 "name_th": ["type": "string"],
                 "description_th": ["type": "string"],
+                "options": [
+                    "type": "array",
+                    "items": [
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["name_ja", "name_th"],
+                        "properties": [
+                            "name_ja": ["type": "string"],
+                            "name_th": ["type": "string"],
+                        ],
+                    ] as [String: Any],
+                ] as [String: Any],
                 "price_yen": ["anyOf": [["type": "integer"], ["type": "null"]]],
                 "tags": [
                     "type": "array",

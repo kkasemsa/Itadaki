@@ -44,6 +44,17 @@ enum DishTag: String, CaseIterable, Sendable {
     }
 }
 
+/// One choice within a dish, such as a filling, flavour or size.
+struct DishOption: Equatable, Hashable, Sendable, Codable {
+    var nameJA: String
+    var nameTH: String
+
+    private enum CodingKeys: String, CodingKey {
+        case nameJA = "name_ja"
+        case nameTH = "name_th"
+    }
+}
+
 struct Dish: Identifiable, Equatable, Sendable {
     let id: UUID
     var nameJA: String
@@ -57,6 +68,8 @@ struct Dish: Identifiable, Equatable, Sendable {
     /// Menu heading this dish is printed under, as printed and in Thai. Empty when none.
     var sectionJA: String
     var sectionTH: String
+    /// Choices the menu lists for this dish (fillings, flavours…), each translated.
+    var options: [DishOption]
 
     init(
         id: UUID = UUID(),
@@ -69,7 +82,8 @@ struct Dish: Identifiable, Equatable, Sendable {
         textBBox: NormalizedRect? = nil,
         photoBBox: NormalizedRect? = nil,
         sectionJA: String = "",
-        sectionTH: String = ""
+        sectionTH: String = "",
+        options: [DishOption] = []
     ) {
         self.id = id
         self.nameJA = nameJA
@@ -82,6 +96,7 @@ struct Dish: Identifiable, Equatable, Sendable {
         self.photoBBox = photoBBox
         self.sectionJA = sectionJA
         self.sectionTH = sectionTH
+        self.options = options
     }
 }
 
@@ -100,6 +115,7 @@ extension Dish: Codable {
         case photoBBox = "photo_bbox"
         case sectionJA = "section_ja"
         case sectionTH = "section_th"
+        case options
     }
 
     /// Names are required; everything else degrades gracefully so one sloppy field
@@ -148,7 +164,9 @@ extension Dish: Codable {
             textBBox: bbox(.textBBox),
             photoBBox: bbox(.photoBBox),
             sectionJA: text(.sectionJA),
-            sectionTH: text(.sectionTH)
+            sectionTH: text(.sectionTH),
+            options: ((try? c.decodeIfPresent([DishOption].self, forKey: .options)) ?? [])
+                .filter { !$0.nameJA.isEmpty || !$0.nameTH.isEmpty }
         )
     }
 }
@@ -168,6 +186,7 @@ extension Dish {
         try c.encode(tags.map(\.rawValue), forKey: .tags)
         try c.encode(textBBox?.array, forKey: .textBBox)
         try c.encode(photoBBox?.array, forKey: .photoBBox)
+        try c.encode(options, forKey: .options)
     }
 }
 

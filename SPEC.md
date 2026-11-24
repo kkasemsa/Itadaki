@@ -53,6 +53,7 @@ Models/         Dish (plain Codable struct); SavedMenu, SavedPage (SwiftData)
       "reading": "からあげていしょく",
       "name_th": "ชุดไก่ทอดคาราอาเกะ",
       "description_th": "ไก่ทอดสไตล์ญี่ปุ่น เสิร์ฟพร้อมข้าว ซุปมิโซะ และผักดอง",
+      "options": [{ "name_ja": "鮭", "name_th": "แซลมอน" }],
       "price_yen": 980,
       "tags": ["pork|beef|chicken|seafood|raw|spicy|alcohol|vegetarian"],
       "text_bbox": [x, y, w, h],
@@ -73,6 +74,8 @@ Models/         Dish (plain Codable struct); SavedMenu, SavedPage (SwiftData)
 - **Several pages:** pick up to 8 photos at once, or photograph pages one after another into a tray before reading. Results are shown per page, with a thumbnail strip to switch pages; the order spans all pages.
 - **Zoom:** in the detail sheet, tapping the dish photo or the menu page opens it full screen with pinch-to-zoom; the page opens zoomed in on the dish's box.
 - **Unreadable page:** short explanation, photo tips and a retake button.
+- **Choices:** when one item lists several choices at one price (fillings, flavours…), each choice is returned in `options` with its own Thai translation and shown on the card and in the detail sheet as "Japanese — Thai".
+- **Dish row:** the Thai description is shown on the card (up to three lines).
 - **Dish row:** cropped photo (if any) on the left; Thai name (large), Japanese name (large enough to point at for staff), reading (small), price ¥ (and ≈ ฿ if rate set, entered as baht per 100 yen), tag chips. The photo column is hidden when the page has no dish photos.
 - **Tap a dish:** detail sheet with the Japanese name very large (to show staff), larger photo and description. On the original page, highlight its `text_bbox`.
 - **iPad (and any regular-width screen):** the original page (zoomable, every dish's box overlaid) beside the dish list. Tapping a box highlights and scrolls to its card; tapping a card highlights its box and zooms the page to it. In this layout a card's info button opens the detail sheet. Built as a side-by-side layout inside the existing navigation stack rather than a `NavigationSplitView`.

@@ -69,6 +69,10 @@ struct DishDetailView: View {
                             .font(.body)
                     }
 
+                    if !item.dish.options.isEmpty {
+                        OptionList(options: item.dish.options, isLarge: true)
+                    }
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("ตำแหน่งในเมนู")
                             .font(.headline)

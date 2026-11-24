@@ -51,13 +51,27 @@ final class DishDecodingTests: XCTestCase {
             nameJA: "唐揚げ定食", reading: "からあげていしょく", nameTH: "ชุดไก่ทอด",
             descriptionTH: "ไก่ทอด", priceYen: 980, tags: [.chicken, .spicy],
             textBBox: NormalizedRect(x: 0.125, y: 0.25, width: 0.5, height: 0.0625),
-            photoBBox: nil, sectionJA: "定食", sectionTH: "ชุดอาหาร")
+            photoBBox: nil, sectionJA: "定食", sectionTH: "ชุดอาหาร",
+            options: [DishOption(nameJA: "鮭", nameTH: "แซลมอน"), DishOption(nameJA: "梅", nameTH: "บ๊วย")])
         let unpriced = Dish(nameJA: "おすすめ", nameTH: "เมนูแนะนำ")
 
         let data = try JSONEncoder().encode([original, unpriced])
         let decoded = try JSONDecoder().decode([Dish].self, from: data)
 
         XCTAssertEqual(decoded, [original, unpriced], "ids, boxes and optional fields survive")
+    }
+
+    func testOptionsDecodeAndDefaultToEmpty() throws {
+        let page = try decodePage("""
+        {"dishes":[
+          {"name_ja":"おにぎり","name_th":"ข้าวปั้น","options":[
+            {"name_ja":"鮭","name_th":"แซลมอน"},{"name_ja":"","name_th":""},{"name_ja":"明太子","name_th":"ไข่ปลาเมนไทโกะ"}]},
+          {"name_ja":"ラーメン","name_th":"ราเมง"}]}
+        """)
+        XCTAssertEqual(page.dishes[0].options.map(\.nameJA), ["鮭", "明太子"], "blank entries are dropped")
+        XCTAssertEqual(page.dishes[0].options[1].nameTH, "ไข่ปลาเมนไทโกะ")
+        XCTAssertEqual(page.dishes[1].options, [], "menus saved before options existed still load")
+        XCTAssertEqual(try MockMenuAnalyzer.fixturePage().dishes[3].options.count, 3)
     }
 
     func testLenientFields() throws {
